@@ -1,0 +1,54 @@
+{
+  "name": "wanderapp-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "@uppy/core": "^5.0.1",
+    "@uppy/dashboard": "^5.0.1",
+    "@uppy/drag-drop": "^5.0.1",
+    "@uppy/locales": "^5.0.0",
+    "@uppy/status-bar": "^5.0.0",
+    "@uppy/xhr-upload": "^5.0.0",
+    "axios": "^1.11.0",
+    "core-js": "^3.8.3",
+    "gpxparser": "^3.0.8",
+    "mapbox-gl": "^3.14.0",
+    "photoswipe": "^5.4.4",
+    "vue": "^3.2.13",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "^7.24.7",
+    "@vue/cli-plugin-babel": "^5.0.9",
+    "@vue/cli-plugin-eslint": "^5.0.9",
+    "@vue/cli-service": "~5.0.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-vue": "^9.26.0",
+    "vue-eslint-parser": "^9.4.3"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/vue3-essential",
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "parser": "@babel/eslint-parser"
+    },
+    "rules": {}
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}
