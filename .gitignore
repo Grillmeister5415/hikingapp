@@ -13,10 +13,20 @@ media/
 staticfiles/
 
 # ---- Virtualenv ----
-venv/
+wanderapp_backend/venv/
 ENV/
 env/
 .venv/
+
+# ---- Frontend (Node/React/etc.) ----
+wanderapp-frontend/node_modules/
+wanderapp-frontend/dist/
+wanderapp-frontend/build/
+
+# ---- Environment & Secrets ----
+.env
+.env.local
+.env.*.local
 
 # ---- IDEs & Editors ----
 .vscode/
