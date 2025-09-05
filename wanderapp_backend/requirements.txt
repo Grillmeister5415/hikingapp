@@ -8,7 +8,6 @@ django-filter==24.2
 
 # Database & GIS
 psycopg2-binary==2.9.9
-GeoDjango==4.2.23 
 djangorestframework-gis==1.0
 
 # Authentication
