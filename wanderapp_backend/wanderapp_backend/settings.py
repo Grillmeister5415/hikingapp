@@ -15,7 +15,7 @@ GDAL_LIBRARY_PATH = config('GDAL_LIBRARY_PATH')
 GEOS_LIBRARY_PATH = config('GEOS_LIBRARY_PATH')
 # ------------------------------------
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', SERVER_IP]
+ALLOWED_HOSTS = ['wandern.prod''localhost', '127.0.0.1', SERVER_IP]
 
 INSTALLED_APPS = ['django.contrib.admin','django.contrib.auth','django.contrib.contenttypes','django.contrib.sessions','django.contrib.messages','django.contrib.staticfiles','django.contrib.gis','rest_framework','django_filters','rest_framework_gis','corsheaders','api']
 MIDDLEWARE = ['django.middleware.security.SecurityMiddleware','django.contrib.sessions.middleware.SessionMiddleware','corsheaders.middleware.CorsMiddleware','django.middleware.common.CommonMiddleware','django.middleware.csrf.CsrfViewMiddleware','django.contrib.auth.middleware.AuthenticationMiddleware','django.contrib.messages.middleware.MessageMiddleware','django.middleware.clickjacking.XFrameOptionsMiddleware']
