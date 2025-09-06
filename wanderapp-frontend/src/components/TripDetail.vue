@@ -57,7 +57,7 @@
       <div v-for="stage in trip.stages" :key="stage.id" class="stage-card">
         <div class="stage-header">
           <h3>{{ stage.name }} ({{ formatDate(stage.date) }})</h3>
-          <div class="stage-controls" v-if="currentUser && currentUser.id === stage.creator.id">
+          <div class="stage-controls" v-if="currentUser && stage && stage.creator && currentUser.id === stage.creator.id">
             <router-link :to="`/stage/${stage.id}/edit`" class="btn-edit">Bearbeiten ✏️</router-link>
             <button @click="handleDeleteStage(stage.id)" class="btn-delete" title="Etappe löschen">🗑️</button>
           </div>
@@ -120,7 +120,7 @@
           <p v-else><em>Für diese Etappe wurden noch keine Fotos hochgeladen.</em></p>
 
           <ImageUploader 
-            v-if="currentUser && currentUser.id === stage.creator.id"
+            v-if="currentUser && stage && stage.creator && currentUser.id === stage.creator.id"
             :stageId="stage.id" 
             @upload-success="handleUploadSuccess" 
           />
@@ -322,4 +322,45 @@ a[href="/"] { display: inline-block; margin-bottom: 1rem; }
 .btn-delete-photo { position: absolute; top: 5px; right: 5px; background-color: rgba(0, 0, 0, 0.5); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; line-height: 24px; text-align: center; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; }
 .photo-wrapper:hover .btn-delete-photo { opacity: 1; }
 .error-message { color: red; }
+
+/* iPhone/Touch: Buttons ohne Hover sichtbar machen */
+@media (hover: none) and (pointer: coarse) {
+  .btn-add-photo,
+  .btn-delete-photo {
+    opacity: 1 !important;
+  }
+}
+
+/* Responsive layout fixes */
+@media (max-width: 600px) {
+  /* Trip + Stage header: stack title and buttons */
+  .trip-header,
+  .stage-header,
+  .header {
+    flex-direction: column;   /* title above, buttons below */
+    align-items: flex-start;
+    gap: .5rem;
+  }
+
+  .trip-controls,
+  .stage-controls,
+  .controls {
+    display: flex;
+    flex-wrap: wrap;          /* allow wrapping if two buttons don't fit */
+    gap: .5rem;
+    width: 100%;
+  }
+
+  /* Stats section: wrap nicely */
+  .trip-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1rem;
+  }
+
+  .trip-stats > div {
+    min-width: 45%;           /* 2 columns on small screens */
+  }
+}
+
 </style>
