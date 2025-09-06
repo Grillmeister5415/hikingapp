@@ -228,4 +228,33 @@ const logout = () => {
 .hut-tag { background-color: #d1ecf1; color: #0c5460; text-decoration: none; }
 .btn-delete { position: absolute; top: 1rem; right: 1rem; background-color: transparent; border: none; color: #aaa; cursor: pointer; font-size: 1.2rem; }
 .btn-delete:hover { color: #dc3545; }
+
+/* Reserve space so long titles don't flow under the absolute delete button */
+.trip-card .card-content {
+  padding-right: 2.5rem; /* matches .btn-delete size + breathing room */
+}
+
+/* Touch devices (iPhone): if delete is hidden via hover somewhere, make it visible */
+@media (hover: none) and (pointer: coarse) {
+  .btn-delete {
+    opacity: 1 !important;
+  }
+}
+
+/* Page header (title + controls) stacks nicely on mobile */
+@media (max-width: 600px) {
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .5rem;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    width: 100%;
+  }
+}
+
 </style>
