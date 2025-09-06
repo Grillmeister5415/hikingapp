@@ -2,17 +2,25 @@ const { defineConfig } = require('@vue/cli-service');
 
 module.exports = defineConfig({
   devServer: {
-    host: '0.0.0.0',     // reachable from other devices
+    host: '0.0.0.0',
     port: 8080,
     allowedHosts: 'all',
     proxy: {
       '/api': {
-        target: 'http://192.168.178.65:8000', // ok since proxy runs on your Mac
-        changeOrigin: true,
+        target: 'http://localhost:8000',
+        changeOrigin: false,
         ws: true,
-        // IMPORTANT: no pathRewrite here since Django serves /api/...
-        // pathRewrite: { '^/api': '' }  // <-- leave this OUT
+        // no pathRewrite — Django serves /api/ correctly
       },
+      '/media': {
+        target: 'http://localhost:8000',
+        changeOrigin: false,
+      },
+      // optional, only if you ever fetch Django /static from the FE:
+      // '/static': {
+      //   target: 'http://localhost:8000',
+      //   changeOrigin: false,
+      // },
     },
   },
 });
