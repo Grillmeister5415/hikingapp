@@ -47,25 +47,6 @@ Dies ist die zentrale Konfigurationsdatei von Django. Sie wurde angepasst, um al
 
 Diese Datei liegt im Hauptverzeichnis des Backends (`wanderapp_backend/`) und darf **niemals auf GitHub hochgeladen werden**. Sie enthält die "Geheimnisse" und systemabhängigen Pfade.
 
-```
-# .env file for Ubuntu
-
-# Django Settings
-SECRET_KEY=Ihr_geheimer_Schlüssel_hier
-DEBUG=True
-
-# Database Settings
-DB_NAME=wanderapp_db
-DB_USER=wanderapp_user
-DB_PASSWORD=Ihr_sicheres_Datenbankpasswort
-
-# Netzwerk
-SERVER_IP=192.168.178.58 # Die IP des Ubuntu-Rechners
-
-# Library Paths for Ubuntu
-GDAL_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgdal.so
-GEOS_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgeos_c.so.1
-```
 
 ```
 # .env file for Ubuntu
