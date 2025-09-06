@@ -20,8 +20,8 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
 import { useRouter } from 'vue-router';
+import api from '@/api'; // <-- shared axios instance with baseURL: '/api'
 
 const router = useRouter();
 const email = ref('');
@@ -33,7 +33,7 @@ const handleLogin = async () => {
   isLoading.value = true;
   error.value = null;
   try {
-    const response = await axios.post('http://192.168.178.65:8000/api/token/', {
+    const response = await api.post('/token/', {
       email: email.value,
       password: password.value,
     });
@@ -71,11 +71,38 @@ const handleLogin = async () => {
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
-/* ... Sie können Stile aus den anderen Formularen kopieren ... */
-h2 { text-align: center; margin-bottom: 1.5rem; }
-.form-group { display: flex; flex-direction: column; }
-label { margin-bottom: 0.5rem; font-weight: bold; }
-input { padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; margin-bottom: 1rem; }
-button { padding: 1rem; background-color: #42b983; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; width: 100%; }
-.error { color: red; text-align: center; margin-top: 1rem; }
+h2 { 
+  text-align: center; 
+  margin-bottom: 1.5rem; 
+}
+.form-group { 
+  display: flex; 
+  flex-direction: column; 
+}
+label { 
+  margin-bottom: 0.5rem; 
+  font-weight: bold; 
+}
+input { 
+  padding: 0.8rem; 
+  border: 1px solid #ccc; 
+  border-radius: 4px; 
+  font-size: 1rem; 
+  margin-bottom: 1rem; 
+}
+button { 
+  padding: 1rem; 
+  background-color: #42b983; 
+  color: white; 
+  border: none; 
+  border-radius: 4px; 
+  font-size: 1rem; 
+  cursor: pointer; 
+  width: 100%; 
+}
+.error { 
+  color: red; 
+  text-align: center; 
+  margin-top: 1rem; 
+}
 </style>

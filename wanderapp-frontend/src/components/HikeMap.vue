@@ -9,7 +9,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios';	
+import api from '@/api';               // <-- uses baseURL '/api' + Authorization interceptor
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -21,6 +21,7 @@ const isLoading = ref(true);
 const trackData = ref(null);
 
 onMounted(async () => {
+  // Mapbox Token (leave as-is if this is your dev token)
   mapboxgl.accessToken = 'pk.eyJ1IjoiZmFiZW1laWVyIiwiYSI6ImNtZjJ0azQ2OTJrYXAyanNkMTUzZmg2aDUifQ.2ozmDlUR0cn8v4g5wJicQw';
   if (!mapboxgl.accessToken.includes('pk.')) {
     error.value = "Bitte füge deinen Mapbox Access Token ein!";
@@ -34,11 +35,8 @@ onMounted(async () => {
       throw new Error("Nicht authentifiziert. Bitte Token setzen.");
     }
 
-    // API-Anfrage, um die Daten für diese Etappe abzurufen
-    const response = await axios.get(`http://192.168.178.65:8000/api/stages/${props.stageId}/`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
+    // API-Anfrage über den Proxy (/api) – kein hartkodiertes Backend mehr
+    const response = await api.get(`/stages/${props.stageId}/`);
     trackData.value = response.data.track;
 
     // Karte initialisieren
@@ -66,7 +64,7 @@ onMounted(async () => {
 
         // Automatisch an den Track heranzoomen
         const bounds = trackData.value.coordinates.reduce(
-          (bounds, coord) => bounds.extend(coord),
+          (b, coord) => b.extend(coord),
           new mapboxgl.LngLatBounds(trackData.value.coordinates[0], trackData.value.coordinates[0])
         );
         map.fitBounds(bounds, { padding: 40 });
