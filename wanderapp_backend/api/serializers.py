@@ -3,6 +3,10 @@ from django.contrib.gis.geos import LineString, Point
 from .models import Trip, Stage, User, TrackPoint, Comment, Hut, Photo
 from datetime import timedelta
 
+# ===================================================================
+# HELPER SERIALIZERS (Your existing code, unchanged)
+# ===================================================================
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -37,6 +41,22 @@ class PhotoSerializer(serializers.ModelSerializer):
             'display_webp', 'thumbnail_webp'
         ]
         read_only_fields = ['creator']
+
+class HutCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hut
+        fields = ['name', 'link']
+
+class PartnerStatSerializer(serializers.ModelSerializer):
+    hike_count = serializers.IntegerField()
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'hike_count']
+
+
+# ===================================================================
+# COMPLEX SERIALIZERS (Your existing StageSerializer is preserved)
+# ===================================================================
 
 class StageSerializer(serializers.ModelSerializer):
     track = serializers.SerializerMethodField()
@@ -123,14 +143,33 @@ class StageSerializer(serializers.ModelSerializer):
             self._handle_gpx_data(instance, track_points_data)
         return instance
 
-class HutCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Hut
-        fields = ['name', 'link']
-
-class TripSerializer(serializers.ModelSerializer):
+class TripListSerializer(serializers.ModelSerializer):
+    """
+    Based on your original TripSerializer but with the heavy 'stages' field removed.
+    This guarantees all other fields and annotations are handled correctly.
+    """
     participants = UserSerializer(many=True, read_only=True)
-    stages = StageSerializer(many=True, read_only=True)
+    creator = UserSerializer(read_only=True)
+    huts = HutSerializer(many=True, read_only=True)
+    
+    # All your annotated fields, correctly defined as read-only
+    total_distance = serializers.FloatField(read_only=True)
+    total_gain = serializers.IntegerField(read_only=True)
+    total_loss = serializers.IntegerField(read_only=True)
+    total_duration = serializers.DurationField(read_only=True)
+
+    class Meta:
+        model = Trip
+        # These are the fields from your original serializer, minus 'stages' and write-only fields
+        fields = [
+            'id', 'name', 'description', 'start_date', 'end_date', 'creator', 
+            'participants', 'huts', 'total_distance', 'total_gain', 'total_loss', 'total_duration'
+        ]
+
+class TripDetailSerializer(serializers.ModelSerializer):
+    """ This is your full, original TripSerializer used for creating, updating, and viewing a single trip. """
+    participants = UserSerializer(many=True, read_only=True)
+    stages = StageSerializer(many=True, read_only=True) # Includes the heavy stages data
     creator = UserSerializer(read_only=True)
     huts = HutSerializer(many=True, read_only=True)
     
@@ -172,9 +211,3 @@ class TripSerializer(serializers.ModelSerializer):
         for hut_data in huts_data:
             Hut.objects.create(trip=instance, **hut_data)
         return instance
-
-class PartnerStatSerializer(serializers.ModelSerializer):
-    hike_count = serializers.IntegerField()
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'hike_count']

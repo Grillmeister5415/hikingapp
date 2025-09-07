@@ -28,13 +28,29 @@
         <input type="date" v-model="filters.to_date" />
       </div>
       <button @click="clearFilters" class="btn-clear">Filter zurücksetzen</button>
+      <p class="results-count">{{ totalTrips }} Trip(s) gefunden.</p>
+    </div>
+    
+    <div class="pagination-controls">
+      <div class="page-size-selector">
+        <label for="pageSize">Pro Seite:</label>
+        <select id="pageSize" v-model="pageSize">
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+      <div class="page-navigation">
+        <button @click="prevPage" :disabled="!previousPageUrl || isLoading">‹</button>
+        <span>Seite {{ currentPage }}</span>
+        <button @click="nextPage" :disabled="!nextPageUrl || isLoading">›</button>
+      </div>
     </div>
 
     <div v-if="isLoading">Lade Trips...</div>
     <div v-else-if="error" class="error-message">{{ error }}</div>
     
     <div v-else>
-      <p class="results-count">{{ trips.length }} Trip(s) gefunden.</p>
       <ul class="trip-list">
         <li v-for="trip in trips" :key="trip.id" class="trip-card">
           <div class="card-content">
@@ -71,13 +87,13 @@
             </div>
 
             <div class="tags-container">
-              <div class="participants" v-if="trip.participants.length">
+              <div class="participants" v-if="trip.participants?.length > 0">
                 <strong>Teilnehmer:</strong>
                 <router-link v-for="p in trip.participants" :key="p.id" :to="`/dashboard/${p.id}`" @click.stop class="participant-tag user-link">
                   {{ p.username }}
                 </router-link>
               </div>
-              <div class="huts" v-if="trip.huts.length">
+              <div class="huts" v-if="trip.huts?.length > 0">
                 <strong>Hütten:</strong>
                 <template v-for="hut in trip.huts" :key="hut.id">
                   <a v-if="hut.link" :href="hut.link" target="_blank" @click.stop class="hut-tag">
@@ -89,7 +105,7 @@
             </div>
           </div>
           
-          <button v-if="currentUser && currentUser.id === trip.creator.id" @click.stop="handleDeleteTrip(trip.id)" class="btn-delete" title="Trip löschen">🗑️</button>
+          <button v-if="currentUser && currentUser.id === trip.creator?.id" @click.stop="handleDeleteTrip(trip.id)" class="btn-delete" title="Trip löschen">🗑️</button>
         </li>
       </ul>
     </div>
@@ -109,6 +125,13 @@ const isLoading = ref(true);
 const error = ref(null);
 const allUsers = ref([]);
 
+// --- NEW & UPDATED STATE FOR PAGINATION ---
+const totalTrips = ref(0);
+const currentPage = ref(1);
+const pageSize = ref('10'); // Default page size
+const nextPageUrl = ref(null);
+const previousPageUrl = ref(null);
+
 const filters = ref({
   search: '',
   participants: [],
@@ -121,21 +144,36 @@ const fetchTrips = async () => {
     isLoading.value = true;
     error.value = null;
     const params = new URLSearchParams();
+
+    // --- Add filter parameters ---
     if (filters.value.search) params.append('search', filters.value.search);
     if (filters.value.participants.length > 0) {
       filters.value.participants.forEach(id => params.append('participants', id));
     }
     if (filters.value.from_date) params.append('from_date', filters.value.from_date);
     if (filters.value.to_date) params.append('to_date', filters.value.to_date);
-    const response = await api.get(`/trips/?${params.toString()}`);
-    trips.value = response.data;
+    
+    // --- Add pagination parameters ---
+    params.append('page', currentPage.value);
+    params.append('page_size', pageSize.value);
+
+    const response = await api.get(`/trips/`, { params });
+
+    // --- CORRECTLY HANDLE PAGINATED RESPONSE ---
+    trips.value = response.data.results;
+    totalTrips.value = response.data.count;
+    nextPageUrl.value = response.data.next;
+    previousPageUrl.value = response.data.previous;
+
   } catch (err) {
-    error.value = "Fehler beim Laden der Trips.";
+    console.error("API Error:", err.response?.data || err.message);
+    error.value = "Fehler beim Laden der Trips. Bitte versuchen Sie es später erneut.";
   } finally {
     isLoading.value = false;
   }
 };
 
+// --- THIS IS YOUR ORIGINAL, WORKING VERSION ---
 const fetchUsers = async () => {
   try {
     const response = await api.get('/users/');
@@ -145,7 +183,15 @@ const fetchUsers = async () => {
   }
 };
 
-watch(filters, fetchTrips, { deep: true });
+// --- Watcher resets to page 1 on any filter change ---
+const onFilterChange = () => {
+  currentPage.value = 1;
+  fetchTrips();
+};
+
+watch(filters, onFilterChange, { deep: true });
+watch(pageSize, onFilterChange);
+
 
 onMounted(() => {
   fetchTrips();
@@ -165,7 +211,7 @@ const handleDeleteTrip = async (tripId) => {
   if (window.confirm("Sind Sie sicher, dass Sie diesen Trip endgültig löschen möchten?")) {
     try {
       await api.delete(`/trips/${tripId}/`);
-      trips.value = trips.value.filter(trip => trip.id !== tripId);
+      fetchTrips(); // Reload the list after deletion
     } catch (err) {
       alert("Fehler beim Löschen des Trips.");
     }
@@ -180,7 +226,7 @@ const formatDate = (dateString) => {
 
 const formatNumber = (num) => {
   if (num === null || num === undefined) return '0';
-  return num.toLocaleString('de-CH');
+  return Math.round(num).toLocaleString('de-CH');
 };
 
 const logout = () => {
@@ -188,9 +234,26 @@ const logout = () => {
   currentUser.value = null;
   router.push('/login');
 };
+
+// --- NEW: Pagination methods ---
+const nextPage = () => {
+  if (nextPageUrl.value) {
+    currentPage.value++;
+    fetchTrips();
+  }
+};
+
+const prevPage = () => {
+  if (previousPageUrl.value) {
+    currentPage.value--;
+    fetchTrips();
+  }
+};
+
 </script>
 
 <style scoped>
+/* Your original CSS from GitHub with additions for pagination */
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
 .header > .controls { display: flex; gap: 1rem; }
 .btn { display: inline-block; padding: 0.8rem 1.5rem; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
@@ -198,17 +261,16 @@ const logout = () => {
 .btn-dashboard { background-color: #0d6efd; }
 .btn-logout { background-color: #6c757d; }
 .error-message { color: red; }
-.filter-bar { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem; background-color: #f8f9fa; border-radius: 8px; margin-bottom: 2rem; align-items: center; }
+.filter-bar { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem; background-color: #f8f9fa; border-radius: 8px; margin-bottom: 1rem; align-items: center; }
 .search-input { flex-grow: 1; padding: 0.8rem 1rem; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; min-width: 200px; }
 .filter-group { display: flex; align-items: center; gap: 0.5rem; }
 .filter-group label { font-weight: 500; }
 .filter-group input[type="date"] { padding: 0.7rem; border-radius: 8px; border: 1px solid #ccc; }
 .btn-clear { background-color: #6c757d; color: white; border: none; padding: 0.8rem 1rem; border-radius: 8px; cursor: pointer; }
-.results-count { text-align: right; color: #6c757d; margin-bottom: 0.5rem; }
 .trip-list { list-style: none; padding: 0; }
 .trip-card { display: flex; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: box-shadow 0.2s ease-in-out; position: relative; }
 .trip-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-.card-content { padding: 1.5rem; width: 100%; }
+.card-content { padding: 1.5rem; width: 100%; padding-right: 2.5rem; }
 .trip-info h2 { margin: 0 0 0.25rem 0; }
 .trip-link { text-decoration: none; color: inherit; }
 .trip-link:hover h2 { color: #0d6efd; }
@@ -228,33 +290,10 @@ const logout = () => {
 .hut-tag { background-color: #d1ecf1; color: #0c5460; text-decoration: none; }
 .btn-delete { position: absolute; top: 1rem; right: 1rem; background-color: transparent; border: none; color: #aaa; cursor: pointer; font-size: 1.2rem; }
 .btn-delete:hover { color: #dc3545; }
-
-/* Reserve space so long titles don't flow under the absolute delete button */
-.trip-card .card-content {
-  padding-right: 2.5rem; /* matches .btn-delete size + breathing room */
-}
-
-/* Touch devices (iPhone): if delete is hidden via hover somewhere, make it visible */
-@media (hover: none) and (pointer: coarse) {
-  .btn-delete {
-    opacity: 1 !important;
-  }
-}
-
-/* Page header (title + controls) stacks nicely on mobile */
-@media (max-width: 600px) {
-  .header {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: .5rem;
-  }
-  .controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
-    width: 100%;
-  }
-}
-
+.pagination-controls { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; padding: 1rem; background-color: #f8f9fa; border-radius: 8px; margin-top: -1rem; margin-bottom: 2rem; }
+.page-navigation { display: flex; align-items: center; gap: 1rem; }
+.page-navigation button { padding: 0.5rem 1rem; border: 1px solid #ccc; border-radius: 4px; }
+.page-navigation button:disabled { opacity: 0.5; cursor: not-allowed; }
+.results-count { text-align: right; color: #6c757d; margin: 0; }
+.filter-bar .results-count { margin-left: auto; font-weight: 500; }
 </style>

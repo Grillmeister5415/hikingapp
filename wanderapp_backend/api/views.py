@@ -1,3 +1,5 @@
+# wanderapp_backend/api/views.py
+
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -8,16 +10,21 @@ from django.db.models import Sum, Count, Value, FloatField, DurationField, Q
 from django.db.models.functions import Coalesce
 from datetime import timedelta
 from .models import Trip, Stage, Comment, TrackPoint, Hut, User, Photo
-from .serializers import TripSerializer, StageSerializer, CommentSerializer, HutSerializer, UserSerializer, PartnerStatSerializer, PhotoSerializer
+
+# WICHTIG: Die korrekten Serializer für Liste/Detail importieren
+from .serializers import TripListSerializer, TripDetailSerializer, StageSerializer, CommentSerializer, HutSerializer, UserSerializer, PartnerStatSerializer, PhotoSerializer
+from .pagination import StandardResultsSetPagination # Unser Paginierungs-Modul
 from .permissions import IsCreatorOrReadOnly, IsAuthorOrStageCreatorOrAdmin
 from .filters import TripFilter
 from .image_processing import process_and_save_photo
 
+
 class TripViewSet(viewsets.ModelViewSet):
-    serializer_class = TripSerializer
     permission_classes = [IsCreatorOrReadOnly]
     filterset_class = TripFilter
+    pagination_class = StandardResultsSetPagination
 
+    # We use your original get_queryset to ensure all annotations are present
     def get_queryset(self):
         queryset = Trip.objects.all().annotate(
             total_duration=Sum(Coalesce('stages__calculated_duration', 'stages__manual_duration', Value(timedelta(0)))),
@@ -26,6 +33,12 @@ class TripViewSet(viewsets.ModelViewSet):
             total_loss=Sum(Coalesce('stages__calculated_elevation_loss', Value(0)))
         ).prefetch_related('participants', 'creator', 'huts')
         return queryset.order_by('-start_date')
+
+    # This method correctly chooses the serializer for the view
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return TripListSerializer # Use the updated lightweight serializer for the list
+        return TripDetailSerializer # Use the full serializer for everything else
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
@@ -64,7 +77,6 @@ class HutViewSet(viewsets.ModelViewSet):
     serializer_class = HutSerializer
     permission_classes = [IsAuthenticated]
 
-# DIESE KLASSE HAT GEFEHLT
 class PhotoViewSet(viewsets.ModelViewSet):
     queryset = Photo.objects.all()
     serializer_class = PhotoSerializer
@@ -91,7 +103,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 class UserStatsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, pk=None, *args, **kwargs):
-        # ... (Diese Klasse bleibt unverändert)
         if pk:
             try: user = User.objects.get(pk=pk)
             except User.DoesNotExist: return Response(status=status.HTTP_404_NOT_FOUND)
@@ -119,7 +130,6 @@ class UserStatsView(APIView):
 class DashboardDataView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, pk=None, *args, **kwargs):
-        # ... (Diese Klasse bleibt unverändert)
         if pk:
             try: user = User.objects.get(pk=pk)
             except User.DoesNotExist: return Response(status=status.HTTP_404_NOT_FOUND)
