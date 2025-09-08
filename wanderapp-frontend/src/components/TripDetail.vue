@@ -7,8 +7,8 @@
       <div class="header">
         <h1>{{ trip.name }}</h1>
         <div class="controls">
-          <router-link v-if="currentUser && currentUser.id === trip.creator.id" :to="`/trip/${trip.id}/edit`" class="btn btn-edit-trip">Trip bearbeiten</router-link>
-          <router-link :to="`/trip/${trip.id}/add-stage`" class="btn btn-add-stage">Neue Etappe +</router-link>
+          <router-link v-if="currentUser && currentUser.id === trip.creator.id" :to="`/trip/${trip.id}/edit`" class="btn btn-edit-trip">Edit Trip</router-link>
+          <router-link :to="`/trip/${trip.id}/add-stage`" class="btn btn-add-stage">Neue Etappe</router-link>
         </div>
       </div>
       <p v-if="trip.creator" class="creator"><em>Erstellt von: {{ trip.creator.username }}</em></p>
@@ -309,7 +309,7 @@ a[href="/"] { display: inline-block; margin-bottom: 1rem; }
 .stage-controls { display: flex; align-items: center; gap: 0.5rem; }
 .btn-edit { padding: 0.4rem 0.8rem; border: 1px solid #6c757d; color: #6c757d; border-radius: 5px; font-size: 0.9rem; }
 .btn-delete { background-color: transparent; border: none; cursor: pointer; font-size: 1.2rem; }
-.stage-stats { display: flex; align-items: baseline; gap: 1rem; margin: 1rem 0; padding-top: 1rem; border-top: 1px solid #f0f0f0; flex-wrap: wrap;}
+.stage-stats { display: flex; align-items: baseline; gap: 0.75rem; margin: 1rem 0; padding-top: 1rem; border-top: 1px solid #f0f0f0; }
 .stage-stats .stat-item { text-align: left; }
 .stage-stats .stat-item span { font-size: 1.2rem; font-weight: 500; }
 .stage-stats .stat-item span small { font-size: 0.8rem; }
@@ -360,6 +360,16 @@ a[href="/"] { display: inline-block; margin-bottom: 1rem; }
 
   .trip-stats > div {
     min-width: 45%;           /* 2 columns on small screens */
+  }
+  
+  /* Stage stats: keep on one line but adjust spacing */
+  .stage-stats {
+    gap: 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .stage-stats .stat-item span {
+    font-size: 1rem;
   }
 }
 

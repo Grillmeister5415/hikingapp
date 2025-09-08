@@ -3,9 +3,9 @@
     <div class="header">
       <h1>Meine Trips</h1>
       <div class="controls">
-        <router-link to="/dashboard" class="btn btn-dashboard">Mein Dashboard</router-link>
-        <router-link to="/trip/new" class="btn btn-new-trip">Neuen Trip erstellen +</router-link>
-        <button @click="logout" class="btn btn-logout">Ausloggen</button>
+        <router-link to="/dashboard" class="btn btn-dashboard">Dashboard</router-link>
+        <router-link to="/trip/new" class="btn btn-new-trip">Add Trip</router-link>
+        <button @click="logout" class="btn btn-logout">Logout</button>
       </div>
     </div>
 
@@ -71,6 +71,11 @@
             </div>
             
             <div class="trip-stats">
+              <div class="stat-item">
+                <span class="stat-value">{{ formatDuration(trip.total_duration) }}</span>
+                <label>Dauer</label>
+              </div>
+              <span class="stat-separator">|</span>
               <div class="stat-item">
                 <span class="stat-value">{{ formatNumber(trip.total_distance) }} <small>km</small></span>
               </div>
@@ -229,6 +234,43 @@ const formatNumber = (num) => {
   return Math.round(num).toLocaleString('de-CH');
 };
 
+const formatDuration = (duration) => {
+  if (!duration) return '0h 0m';
+  
+  let totalSeconds;
+  if (typeof duration === 'string') {
+    if (duration.includes('day')) {
+      const dayMatch = duration.match(/(\d+)\s*day/);
+      const days = dayMatch ? parseInt(dayMatch[1]) : 0;
+      
+      const timeMatch = duration.match(/(\d{1,2}):(\d{2}):(\d{2})/);
+      if (timeMatch) {
+        const hours = parseInt(timeMatch[1]) + (days * 24);
+        const minutes = parseInt(timeMatch[2]);
+        return `${hours}h ${minutes}m`;
+      }
+      return `${days * 24}h 0m`;
+    } else {
+      const timeParts = duration.split(':');
+      if (timeParts.length >= 2) {
+        const hours = parseInt(timeParts[0]);
+        const minutes = parseInt(timeParts[1]);
+        return `${hours}h ${minutes}m`;
+      }
+    }
+  } else if (typeof duration === 'number') {
+    totalSeconds = duration;
+  }
+  
+  if (totalSeconds !== undefined) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  }
+  
+  return '0h 0m';
+};
+
 const logout = () => {
   localStorage.clear();
   currentUser.value = null;
@@ -254,9 +296,9 @@ const prevPage = () => {
 
 <style scoped>
 /* Your original CSS from GitHub with additions for pagination */
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
-.header > .controls { display: flex; gap: 1rem; }
-.btn { display: inline-block; padding: 0.8rem 1.5rem; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1.5rem; }
+.header > .controls { display: flex; gap: 1rem; flex-wrap: wrap; }
+.btn { display: inline-block; padding: 0.8rem 1.5rem; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; border: none; cursor: pointer; font-size: 0.95rem; }
 .btn-new-trip { background-color: #42b983; }
 .btn-dashboard { background-color: #0d6efd; }
 .btn-logout { background-color: #6c757d; }
@@ -266,7 +308,7 @@ const prevPage = () => {
 .filter-group { display: flex; align-items: center; gap: 0.5rem; }
 .filter-group label { font-weight: 500; }
 .filter-group input[type="date"] { padding: 0.7rem; border-radius: 8px; border: 1px solid #ccc; }
-.btn-clear { background-color: #6c757d; color: white; border: none; padding: 0.8rem 1rem; border-radius: 8px; cursor: pointer; }
+.btn-clear { background-color: #6c757d; color: white; border: none; padding: 1rem 1.5rem; border-radius: 12px; cursor: pointer; font-size: 1rem; }
 .trip-list { list-style: none; padding: 0; }
 .trip-card { display: flex; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: box-shadow 0.2s ease-in-out; position: relative; }
 .trip-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -296,4 +338,97 @@ const prevPage = () => {
 .page-navigation button:disabled { opacity: 0.5; cursor: not-allowed; }
 .results-count { text-align: right; color: #6c757d; margin: 0; }
 .filter-bar .results-count { margin-left: auto; font-weight: 500; }
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin: 0 0.5rem 2rem 0.5rem;
+  }
+  
+  .header > .controls {
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .btn {
+    padding: 0.7rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    flex: 1;
+    min-width: 90px;
+    max-width: 110px;
+    text-align: center;
+    border-radius: 10px;
+  }
+  
+  .filter-bar {
+    padding: 0.75rem;
+    gap: 0.5rem;
+    margin: 0 0.5rem 1rem 0.5rem;
+  }
+  
+  .search-input {
+    min-width: auto;
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  /* Special layout for date filters to appear on same line */
+  .filter-group:nth-of-type(3), .filter-group:nth-of-type(4) {
+    display: inline-flex;
+    width: calc(50% - 0.25rem);
+  }
+  
+  .filter-group label {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+  
+  .filter-group input[type="date"] {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .btn-clear {
+    padding: 0.8rem 1rem;
+    font-size: 0.95rem;
+    margin-top: 0.25rem;
+    border-radius: 10px;
+  }
+  
+  .results-count {
+    text-align: center !important;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+  }
+  
+  .pagination-controls {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 0 0.5rem 2rem 0.5rem;
+  }
+  
+  .trip-list {
+    margin: 0 0.5rem;
+  }
+  
+  .trip-stats {
+    gap: 0.5rem;
+  }
+  
+  .stat-value {
+    font-size: 1.2rem;
+  }
+}
 </style>
