@@ -288,9 +288,9 @@
       <p v-else><em>Sie waren bisher alleine unterwegs.</em></p>
     </div>
 
-    <div class="export-section">
+    <div v-if="activeCategory !== 'ALL'" class="export-section">
       <button @click="downloadCSV" :disabled="isDownloading">
-        {{ isDownloading ? 'Exportiere...' : 'Alle Trips als CSV exportieren' }}
+        {{ isDownloading ? 'Exportiere...' : getExportButtonText() }}
       </button>
     </div>
   </div>
@@ -475,30 +475,162 @@ const getHikingTripCount = () => {
   return totals.value.trip_count;
 };
 
+const getExportButtonText = () => {
+  switch (activeCategory.value) {
+    case 'HIKING':
+      return 'Hiking-Trips als CSV exportieren';
+    case 'SURFING':
+      return 'Surf-Sessions als CSV exportieren';
+    default:
+      return 'Alle Aktivitäten als CSV exportieren';
+  }
+};
+
 const downloadCSV = async () => {
   isDownloading.value = true;
   try {
-    const response = await api.get('/trips/');
-    const trips = response.data;
+    // Build API endpoint with activity type filter if applicable
+    let apiEndpoint = '/trips/';
+    if (activeCategory.value !== 'ALL') {
+      apiEndpoint += `?activity_type=${activeCategory.value}`;
+    }
+
+    const response = await api.get(apiEndpoint);
+    const tripsList = response.data.results || response.data;
+
+    // Check if trips is valid
+    if (!tripsList || !Array.isArray(tripsList)) {
+      throw new Error('Keine Trips gefunden oder ungültige Datenstruktur');
+    }
+
+    // Fetch detailed data for each trip (to get stages)
+    const tripDetailsPromises = tripsList.map(trip => api.get(`/trips/${trip.id}/`));
+    const tripDetailsResponses = await Promise.all(tripDetailsPromises);
+    const trips = tripDetailsResponses.map(response => response.data);
+
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Trip Name,Etappen-Name,Datum,Distanz (km),Aufstieg (m),Abstieg (m),Dauer,Teilnehmer\r\n";
+
+    // Generate headers and filename based on activity type
+    let headers = [];
+    let filename = '';
+
+    if (activeCategory.value === 'HIKING') {
+      headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Stage Name", "Stage Date", "Distance (km)", "Elevation Gain (m)", "Elevation Loss (m)", "Duration", "Stage Description", "Creator", "Participants"];
+      filename = "hiking_export.csv";
+    } else if (activeCategory.value === 'SURFING') {
+      headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Country", "Stage Name", "Stage Date", "Surf Spot", "Time in Water", "Waves Caught", "Surfboard Used", "Wave Quality", "Wave Height (m)", "Water Temp (°C)", "Tide Stage", "Tide Movement", "Swell Direction", "Wind Direction", "Wave Energy", "Stage Description", "Creator", "Participants"];
+      filename = "surfing_export.csv";
+    } else {
+      // Combined export includes all fields
+      headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Country", "Stage Name", "Stage Date", "Activity Type", "Distance (km)", "Elevation Gain (m)", "Elevation Loss (m)", "Duration", "Surf Spot", "Time in Water", "Waves Caught", "Surfboard Used", "Wave Quality", "Wave Height (m)", "Water Temp (°C)", "Tide Stage", "Tide Movement", "Swell Direction", "Wind Direction", "Wave Energy", "Stage Description", "Creator", "Participants"];
+      filename = "all_activities_export.csv";
+    }
+
+    csvContent += headers.join(',') + "\r\n";
+
     trips.forEach(trip => {
-      if (trip.stages.length) {
+      if (trip && trip.stages && Array.isArray(trip.stages) && trip.stages.length > 0) {
         trip.stages.forEach(stage => {
-          const distance = stage.calculated_length_km || stage.manual_length_km || 0;
-          const gain = stage.calculated_elevation_gain || stage.manual_elevation_gain || 0;
-          const loss = stage.calculated_elevation_loss || 0;
-          const duration = stage.calculated_duration || stage.manual_duration || '00:00:00';
-          const participants = trip.participants.map(p => p.username).join('; ');
-          let row = [`"${trip.name}"`, `"${stage.name}"`, stage.date, distance, gain, loss, duration, `"${participants}"`].join(',');
-          csvContent += row + "\r\n";
+          const participants = (trip.participants && Array.isArray(trip.participants))
+            ? trip.participants.map(p => p.username).join('; ')
+            : '';
+          let row = [];
+
+          if (activeCategory.value === 'HIKING') {
+            const distance = stage.calculated_length_km || stage.manual_length_km || 0;
+            const gain = stage.calculated_elevation_gain || stage.manual_elevation_gain || 0;
+            const loss = stage.calculated_elevation_loss || 0;
+            const duration = stage.calculated_duration || stage.manual_duration || '00:00:00';
+
+            row = [
+              `"${trip.name}"`,
+              trip.start_date,
+              trip.end_date,
+              `"${stage.name}"`,
+              stage.date,
+              distance,
+              gain,
+              loss,
+              duration,
+              `"${stage.description || ''}"`,
+              `"${trip.creator ? trip.creator.username : ''}"`,
+              `"${participants}"`
+            ];
+          } else if (activeCategory.value === 'SURFING') {
+            const timeInWater = stage.time_in_water || '00:00:00';
+            const waveQuality = stage.wave_quality ? '⭐'.repeat(stage.wave_quality) : '';
+
+            row = [
+              `"${trip.name}"`,
+              trip.start_date,
+              trip.end_date,
+              `"${trip.country || ''}"`,
+              `"${stage.name}"`,
+              stage.date,
+              `"${stage.surf_spot || ''}"`,
+              timeInWater,
+              stage.waves_caught || 0,
+              `"${stage.surfboard_used || ''}"`,
+              waveQuality,
+              stage.wave_height || '',
+              stage.water_temperature || '',
+              stage.tide_stage || '',
+              stage.tide_movement || '',
+              stage.swell_direction || '',
+              stage.wind_direction || '',
+              stage.wave_energy || '',
+              `"${stage.description || ''}"`,
+              `"${trip.creator ? trip.creator.username : ''}"`,
+              `"${participants}"`
+            ];
+          } else {
+            // Combined export - include all fields
+            const distance = stage.calculated_length_km || stage.manual_length_km || 0;
+            const gain = stage.calculated_elevation_gain || stage.manual_elevation_gain || 0;
+            const loss = stage.calculated_elevation_loss || 0;
+            const duration = stage.calculated_duration || stage.manual_duration || '00:00:00';
+            const timeInWater = stage.time_in_water || '00:00:00';
+            const waveQuality = stage.wave_quality ? '⭐'.repeat(stage.wave_quality) : '';
+
+            row = [
+              `"${trip.name}"`,
+              trip.start_date,
+              trip.end_date,
+              `"${trip.country || ''}"`,
+              `"${stage.name}"`,
+              stage.date,
+              stage.activity_type || 'HIKING',
+              distance,
+              gain,
+              loss,
+              duration,
+              `"${stage.surf_spot || ''}"`,
+              timeInWater,
+              stage.waves_caught || 0,
+              `"${stage.surfboard_used || ''}"`,
+              waveQuality,
+              stage.wave_height || '',
+              stage.water_temperature || '',
+              stage.tide_stage || '',
+              stage.tide_movement || '',
+              stage.swell_direction || '',
+              stage.wind_direction || '',
+              stage.wave_energy || '',
+              `"${stage.description || ''}"`,
+              `"${trip.creator ? trip.creator.username : ''}"`,
+              `"${participants}"`
+            ];
+          }
+
+          csvContent += row.join(',') + "\r\n";
         });
       }
     });
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "wanderungen_detail_export.csv");
+    link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
