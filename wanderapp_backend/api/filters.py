@@ -8,6 +8,9 @@ class TripFilter(django_filters.FilterSet):
     from_date = django_filters.DateFilter(field_name='start_date', lookup_expr='gte', label='Start Date From')
     to_date = django_filters.DateFilter(field_name='end_date', lookup_expr='lte', label='End Date To')
     
+    # Activity type filter for category-based separation
+    activity_type = django_filters.ChoiceFilter(choices=Trip.ACTIVITY_CHOICES, label="Activity Type")
+    
     # This now correctly corresponds to the method below
     is_creator = django_filters.BooleanFilter(method='filter_is_creator')
 
@@ -22,7 +25,7 @@ class TripFilter(django_filters.FilterSet):
 
     class Meta:
         model = Trip
-        fields = ['search', 'participants', 'from_date', 'to_date', 'is_creator']
+        fields = ['search', 'participants', 'from_date', 'to_date', 'activity_type', 'is_creator']
 
     def filter_by_search(self, queryset, name, value):
         return queryset.filter(

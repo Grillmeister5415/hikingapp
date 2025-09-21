@@ -6,10 +6,11 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
-from django.db.models import Sum, Count, Value, FloatField, DurationField, Q
+from django.db.models import Sum, Count, Value, FloatField, DurationField, Q, Case, When, Avg, Min, Max
 from django.db.models.functions import Coalesce
 from datetime import timedelta
 from .models import Trip, Stage, Comment, TrackPoint, Hut, User, Photo
+from django_countries import countries
 
 # WICHTIG: Die korrekten Serializer für Liste/Detail importieren
 from .serializers import TripListSerializer, TripDetailSerializer, StageSerializer, CommentSerializer, HutSerializer, UserSerializer, PartnerStatSerializer, PhotoSerializer
@@ -27,10 +28,30 @@ class TripViewSet(viewsets.ModelViewSet):
     # We use your original get_queryset to ensure all annotations are present
     def get_queryset(self):
         queryset = Trip.objects.all().annotate(
+            # Hiking/Running totals
             total_duration=Sum(Coalesce('stages__calculated_duration', 'stages__manual_duration', Value(timedelta(0)))),
             total_distance=Sum(Coalesce('stages__calculated_length_km', 'stages__manual_length_km', Value(0.0))),
             total_gain=Sum(Coalesce('stages__calculated_elevation_gain', 'stages__manual_elevation_gain', Value(0))),
-            total_loss=Sum(Coalesce('stages__calculated_elevation_loss', Value(0)))
+            total_loss=Sum(Coalesce('stages__calculated_elevation_loss', Value(0))),
+            
+            # Surfing totals
+            total_surf_time=Sum(
+                Case(
+                    When(stages__activity_type='SURFING', then=Coalesce('stages__time_in_water', Value(timedelta(0)))),
+                    default=Value(timedelta(0))
+                )
+            ),
+            total_wave_count=Sum(
+                Case(
+                    When(stages__activity_type='SURFING', then=Coalesce('stages__waves_caught', Value(0))),
+                    default=Value(0)
+                )
+            ),
+            unique_surf_spots_count=Count(
+                'stages__surf_spot',
+                filter=Q(stages__activity_type='SURFING', stages__surf_spot__isnull=False, stages__surf_spot__gt=''),
+                distinct=True
+            )
         ).prefetch_related('participants', 'creator', 'huts')
         return queryset.order_by('-start_date')
 
@@ -107,15 +128,59 @@ class UserStatsView(APIView):
             try: user = User.objects.get(pk=pk)
             except User.DoesNotExist: return Response(status=status.HTTP_404_NOT_FOUND)
         else: user = request.user
+        
+        # Get activity type filter from query parameters
+        activity_type = request.GET.get('activity_type')
+        
         user_stages = Stage.objects.filter(trip__participants=user).distinct()
-        trip_count = Trip.objects.filter(participants=user).distinct().count()
+        
+        # Apply activity type filter if provided
+        if activity_type:
+            user_stages = user_stages.filter(activity_type=activity_type)
+        
+        # Filter trips by activity type if provided
+        user_trips = Trip.objects.filter(participants=user).distinct()
+        if activity_type:
+            user_trips = user_trips.filter(activity_type=activity_type)
+        trip_count = user_trips.count()
         stage_count = user_stages.count()
+        
+        # Overall stats
         stats = user_stages.aggregate(
             total_km=Sum(Coalesce('calculated_length_km', 'manual_length_km', Value(0.0))),
             total_elevation=Sum(Coalesce('calculated_elevation_gain', 'manual_elevation_gain', Value(0))),
             total_loss=Sum(Coalesce('calculated_elevation_loss', Value(0))),
             total_duration=Sum(Coalesce('calculated_duration', 'manual_duration', Value(timedelta(0))))
         )
+        
+        # Activity-specific stats
+        hiking_stages = user_stages.filter(activity_type='HIKING')
+        surfing_stages = user_stages.filter(activity_type='SURFING')
+        
+        hiking_stats = hiking_stages.aggregate(
+            count=Count('id'),
+            total_km=Sum(Coalesce('calculated_length_km', 'manual_length_km', Value(0.0))),
+            total_elevation=Sum(Coalesce('calculated_elevation_gain', 'manual_elevation_gain', Value(0))),
+            total_loss=Sum(Coalesce('calculated_elevation_loss', Value(0))),
+            total_duration=Sum(Coalesce('calculated_duration', 'manual_duration', Value(timedelta(0))))
+        )
+        
+        surfing_stats = surfing_stages.aggregate(
+            count=Count('id'),
+            total_time_in_water=Sum(Coalesce('time_in_water', Value(timedelta(0)))),
+            total_waves_caught=Sum(Coalesce('waves_caught', Value(0))),
+            avg_water_temp=Avg(Coalesce('water_temperature', Value(0.0))),
+            min_water_temp=Min(Coalesce('water_temperature', Value(999.0))),
+            max_water_temp=Max(Coalesce('water_temperature', Value(-999.0)))
+        )
+        
+        # Calculate most used surfboard
+        most_used_board = None
+        if surfing_stages.exists():
+            board_counts = surfing_stages.exclude(surfboard_used__isnull=True).exclude(surfboard_used__exact='').values('surfboard_used').annotate(count=Count('surfboard_used')).order_by('-count').first()
+            if board_counts:
+                most_used_board = board_counts['surfboard_used']
+        
         stats_data = {
             'username': user.username,
             'trip_count': trip_count,
@@ -124,6 +189,24 @@ class UserStatsView(APIView):
             'total_elevation': stats.get('total_elevation') or 0,
             'total_loss': stats.get('total_loss') or 0,
             'total_duration': (stats.get('total_duration') or timedelta(0)).total_seconds(),
+            
+            # Activity-specific stats
+            'hiking': {
+                'count': hiking_stats['count'] or 0,
+                'total_km': round(hiking_stats.get('total_km') or 0, 2),
+                'total_elevation': hiking_stats.get('total_elevation') or 0,
+                'total_loss': hiking_stats.get('total_loss') or 0,
+                'total_duration': (hiking_stats.get('total_duration') or timedelta(0)).total_seconds(),
+            },
+            'surfing': {
+                'count': surfing_stats['count'] or 0,
+                'total_time_in_water': (surfing_stats.get('total_time_in_water') or timedelta(0)).total_seconds(),
+                'total_waves_caught': surfing_stats.get('total_waves_caught') or 0,
+                'most_used_surfboard': most_used_board,
+                'avg_water_temperature': round(surfing_stats.get('avg_water_temp') or 0, 1) if surfing_stats.get('avg_water_temp') else None,
+                'min_water_temperature': surfing_stats.get('min_water_temp') if surfing_stats.get('min_water_temp', 999) != 999 else None,
+                'max_water_temperature': surfing_stats.get('max_water_temp') if surfing_stats.get('max_water_temp', -999) != -999 else None,
+            }
         }
         return Response(stats_data)
         
@@ -134,20 +217,115 @@ class DashboardDataView(APIView):
             try: user = User.objects.get(pk=pk)
             except User.DoesNotExist: return Response(status=status.HTTP_404_NOT_FOUND)
         else: user = request.user
+        
+        # Get activity type filter from query parameters
+        activity_type = request.GET.get('activity_type')
+        
         user_stages = Stage.objects.filter(trip__participants=user).distinct()
+        
+        # Apply activity type filter if provided
+        if activity_type:
+            user_stages = user_stages.filter(activity_type=activity_type)
+        
+        # Overall records
         longest_stage_km = user_stages.order_by(Coalesce('calculated_length_km', 'manual_length_km', Value(0)).desc()).first()
         highest_stage_gain = user_stages.order_by(Coalesce('calculated_elevation_gain', 'manual_elevation_gain', Value(0)).desc()).first()
         longest_stage_duration = user_stages.order_by(Coalesce('calculated_duration', 'manual_duration', Value(timedelta(0))).desc()).first()
+        
+        # Activity-specific records
+        hiking_stages = user_stages.filter(activity_type='HIKING')
+        surfing_stages = user_stages.filter(activity_type='SURFING')
+        
+        # Hiking records
+        longest_hike_km = hiking_stages.order_by(Coalesce('calculated_length_km', 'manual_length_km', Value(0)).desc()).first()
+        highest_hike_gain = hiking_stages.order_by(Coalesce('calculated_elevation_gain', 'manual_elevation_gain', Value(0)).desc()).first()
+        longest_hike_duration = hiking_stages.order_by(Coalesce('calculated_duration', 'manual_duration', Value(timedelta(0))).desc()).first()
+        
+        # Surfing records
+        longest_surf_session = surfing_stages.order_by(Coalesce('time_in_water', Value(timedelta(0))).desc()).first()
+        most_waves_caught = surfing_stages.order_by(Coalesce('waves_caught', Value(0)).desc()).first()
+        best_wave_quality = surfing_stages.order_by(Coalesce('wave_quality', Value(0)).desc()).first()
+        
+        # Filter trips by activity type if provided
         user_trips = Trip.objects.filter(participants=user)
+        if activity_type:
+            user_trips = user_trips.filter(activity_type=activity_type)
+        
         top_partners = User.objects.filter(
             participated_trips__in=user_trips
         ).exclude(pk=user.pk).annotate(
             hike_count=Count('participated_trips', filter=Q(participated_trips__in=user_trips))
         ).order_by('-hike_count')[:3]
+        
         data = {
-            'longest_stage_by_km': StageSerializer(longest_stage_km, context={'request': request}).data if longest_stage_km else None,
-            'highest_stage_by_gain': StageSerializer(highest_stage_gain, context={'request': request}).data if highest_stage_gain else None,
-            'longest_stage_by_duration': StageSerializer(longest_stage_duration, context={'request': request}).data if longest_stage_duration else None,
-            'top_partners': PartnerStatSerializer(top_partners, many=True).data
+            'top_partners': PartnerStatSerializer(top_partners, many=True).data,
         }
+        
+        # Only include records for hiking or when no filter is applied (surfing should not have records)
+        if activity_type != 'SURFING':
+            data.update({
+                # Overall records
+                'longest_stage_by_km': StageSerializer(longest_stage_km, context={'request': request}).data if longest_stage_km else None,
+                'highest_stage_by_gain': StageSerializer(highest_stage_gain, context={'request': request}).data if highest_stage_gain else None,
+                'longest_stage_by_duration': StageSerializer(longest_stage_duration, context={'request': request}).data if longest_stage_duration else None,
+                
+                # Activity-specific records
+                'hiking_records': {
+                    'longest_by_km': StageSerializer(longest_hike_km, context={'request': request}).data if longest_hike_km else None,
+                    'highest_by_gain': StageSerializer(highest_hike_gain, context={'request': request}).data if highest_hike_gain else None,
+                    'longest_by_duration': StageSerializer(longest_hike_duration, context={'request': request}).data if longest_hike_duration else None,
+                },
+                'surfing_records': {
+                    'longest_session': StageSerializer(longest_surf_session, context={'request': request}).data if longest_surf_session else None,
+                    'most_waves_caught': StageSerializer(most_waves_caught, context={'request': request}).data if most_waves_caught else None,
+                    'best_wave_quality': StageSerializer(best_wave_quality, context={'request': request}).data if best_wave_quality else None,
+                }
+            })
         return Response(data)
+
+class CountriesAPIView(APIView):
+    """
+    API endpoint to get country options for surf trips.
+    Returns popular surf destinations first, then all other countries.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Get popular surf destinations from the Trip model
+        surf_destinations = Trip.SURF_DESTINATIONS
+        
+        # Generate flag emoji for country code
+        def get_country_flag(country_code):
+            if not country_code or len(country_code) != 2:
+                return '🌍'
+            return ''.join(chr(ord(char) + 127397) for char in country_code.upper())
+        
+        # Popular surf destinations with flags
+        popular_destinations = []
+        for code in surf_destinations:
+            country_name = dict(countries)[code] if code in dict(countries) else code
+            popular_destinations.append({
+                'code': code,
+                'name': country_name,
+                'flag': get_country_flag(code),
+                'display': f"{country_name} {get_country_flag(code)}"
+            })
+        
+        # All other countries (excluding popular destinations)
+        all_countries = []
+        for code, name in countries:
+            if code not in surf_destinations:
+                all_countries.append({
+                    'code': code,
+                    'name': name,
+                    'flag': get_country_flag(code),
+                    'display': f"{name} {get_country_flag(code)}"
+                })
+        
+        # Sort all countries alphabetically
+        all_countries = sorted(all_countries, key=lambda x: x['name'])
+        
+        return Response({
+            'popular_surf_destinations': popular_destinations,
+            'all_countries': all_countries
+        })

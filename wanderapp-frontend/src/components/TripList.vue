@@ -4,9 +4,24 @@
       <h1>Meine Trips</h1>
       <div class="controls">
         <router-link to="/dashboard" class="btn btn-dashboard">Dashboard</router-link>
-        <router-link to="/trip/new" class="btn btn-new-trip">Add Trip</router-link>
+        <router-link :to="getAddTripRoute()" class="btn btn-new-trip">
+          {{ getAddTripLabel() }}
+        </router-link>
         <button @click="logout" class="btn btn-logout">Logout</button>
       </div>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="category-tabs">
+      <button 
+        v-for="category in categories" 
+        :key="category.value"
+        @click="setActiveCategory(category.value)"
+        :class="['category-tab', { active: activeCategory === category.value }]"
+      >
+        <span class="category-icon">{{ category.icon }}</span>
+        {{ category.label }}
+      </button>
     </div>
 
     <div class="filter-bar">
@@ -70,7 +85,8 @@
               </div>
             </div>
             
-            <div class="trip-stats">
+            <!-- Hiking/Running Stats -->
+            <div v-if="trip.activity_type !== 'SURFING'" class="trip-stats">
               <div class="stat-item">
                 <span class="stat-value">{{ formatDuration(trip.total_duration) }}</span>
                 <label>Dauer</label>
@@ -91,6 +107,19 @@
               </div>
             </div>
 
+            <!-- Surf Stats -->
+            <div v-if="trip.activity_type === 'SURFING'" class="trip-stats surf-stats">
+              <div class="stat-item">
+                <span class="stat-value">{{ getSurfStageCount(trip) }}</span>
+                <label>Sessions</label>
+              </div>
+              <span class="stat-separator" v-if="trip.country_display">|</span>
+              <div class="stat-item" v-if="trip.country_display">
+                <span class="stat-value">{{ getCountryWithFlag(trip) }}</span>
+                <label>Land</label>
+              </div>
+            </div>
+
             <div class="tags-container">
               <div class="participants" v-if="trip.participants?.length > 0">
                 <strong>Teilnehmer:</strong>
@@ -98,14 +127,21 @@
                   {{ p.username }}
                 </router-link>
               </div>
-              <div class="huts" v-if="trip.huts?.length > 0">
-                <strong>Hütten:</strong>
+              <!-- Show huts for hiking trips -->
+              <div class="huts" v-if="trip.activity_type === 'HIKING' && trip.huts?.length > 0">
+                <strong>🏔️ Hütten:</strong>
                 <template v-for="hut in trip.huts" :key="hut.id">
                   <a v-if="hut.link" :href="hut.link" target="_blank" @click.stop class="hut-tag">
                     {{ hut.name }} 🔗
                   </a>
                   <span v-else class="hut-tag">{{ hut.name }}</span>
                 </template>
+              </div>
+              
+              <!-- Show country for surf trips -->
+              <div class="country" v-if="trip.activity_type === 'SURFING' && trip.country_display">
+                <strong>🌍 Land:</strong>
+                <span class="country-tag">{{ getCountryWithFlag(trip) }}</span>
               </div>
             </div>
           </div>
@@ -119,12 +155,21 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import { currentUser } from '../store';
 import MultiSelectDropdown from './MultiSelectDropdown.vue';
 
+// Accept props for default category
+const props = defineProps({
+  defaultCategory: {
+    type: String,
+    default: null
+  }
+});
+
 const router = useRouter();
+const route = useRoute();
 const trips = ref([]);
 const isLoading = ref(true);
 const error = ref(null);
@@ -136,6 +181,13 @@ const currentPage = ref(1);
 const pageSize = ref('10'); // Default page size
 const nextPageUrl = ref(null);
 const previousPageUrl = ref(null);
+
+// Category management
+const activeCategory = ref(props.defaultCategory || 'HIKING');
+const categories = ref([
+  { value: 'HIKING', label: 'Wandern', icon: '🥾' },
+  { value: 'SURFING', label: 'Surfen', icon: '🏄‍♂️' }
+]);
 
 const filters = ref({
   search: '',
@@ -157,6 +209,9 @@ const fetchTrips = async () => {
     }
     if (filters.value.from_date) params.append('from_date', filters.value.from_date);
     if (filters.value.to_date) params.append('to_date', filters.value.to_date);
+    
+    // --- Add activity type filter based on active category ---
+    params.append('activity_type', activeCategory.value);
     
     // --- Add pagination parameters ---
     params.append('page', currentPage.value);
@@ -188,6 +243,34 @@ const fetchUsers = async () => {
   }
 };
 
+// --- Category management ---
+const setActiveCategory = (category) => {
+  // Navigate to category-specific URL - the route watcher will handle the data refresh
+  const categoryRoutes = {
+    'HIKING': '/hiking',
+    'SURFING': '/surfing'
+  };
+  
+  const targetRoute = categoryRoutes[category];
+  if (targetRoute && route.path !== targetRoute) {
+    router.push(targetRoute);
+  } else {
+    // Fallback: if we're already on the correct route, refresh manually
+    activeCategory.value = category;
+    currentPage.value = 1;
+    fetchTrips();
+  }
+};
+
+const getAddTripRoute = () => {
+  return `/trip/new?activity_type=${activeCategory.value}`;
+};
+
+const getAddTripLabel = () => {
+  const category = categories.value.find(cat => cat.value === activeCategory.value);
+  return `${category?.icon} ${category?.label} hinzufügen`;
+};
+
 // --- Watcher resets to page 1 on any filter change ---
 const onFilterChange = () => {
   currentPage.value = 1;
@@ -197,6 +280,24 @@ const onFilterChange = () => {
 watch(filters, onFilterChange, { deep: true });
 watch(pageSize, onFilterChange);
 
+// Helper function to extract category from route path
+const getCategoryFromRoute = (routePath) => {
+  const categoryMap = {
+    '/hiking': 'HIKING',
+    '/surfing': 'SURFING'
+  };
+  return categoryMap[routePath] || 'HIKING';
+};
+
+// Watch for route changes to update category and refresh data
+watch(route, (newRoute) => {
+  const newCategory = getCategoryFromRoute(newRoute.path);
+  if (newCategory !== activeCategory.value) {
+    activeCategory.value = newCategory;
+    currentPage.value = 1;
+    fetchTrips();
+  }
+}, { immediate: true });
 
 onMounted(() => {
   fetchTrips();
@@ -292,11 +393,73 @@ const prevPage = () => {
   }
 };
 
+// Surf-specific helper functions
+const getSurfStageCount = (trip) => {
+  return trip.surf_session_count || trip.stage_count || '0';
+};
+
+const getCountryWithFlag = (trip) => {
+  if (!trip.country || !trip.country_display) return '';
+  
+  // Generate flag emoji for country code
+  const getCountryFlag = (countryCode) => {
+    if (!countryCode || countryCode.length !== 2) return '🌍';
+    return countryCode
+      .toUpperCase()
+      .split('')
+      .map(char => String.fromCodePoint(char.charCodeAt(0) + 127397))
+      .join('');
+  };
+  
+  const flag = getCountryFlag(trip.country);
+  return `${flag} ${trip.country_display}`;
+};
+
 </script>
 
 <style scoped>
 /* Your original CSS from GitHub with additions for pagination */
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1.5rem; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem; }
+
+/* Category tabs styling */
+.category-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+}
+
+.category-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background-color: transparent;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #6c757d;
+  transition: all 0.2s ease;
+}
+
+.category-tab:hover {
+  background-color: rgba(255, 255, 255, 0.7);
+  color: #495057;
+}
+
+.category-tab.active {
+  background-color: white;
+  color: #333;
+  border-color: #0d6efd;
+  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+}
+
+.category-icon {
+  font-size: 1.2rem;
+}
 .header > .controls { display: flex; gap: 1rem; flex-wrap: wrap; }
 .btn { display: inline-block; padding: 0.8rem 1.5rem; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; border: none; cursor: pointer; font-size: 0.95rem; }
 .btn-new-trip { background-color: #42b983; }
@@ -326,10 +489,20 @@ const prevPage = () => {
 .stat-item label { font-size: 0.8rem; color: #6c757d; display: block; margin-top: -5px; }
 .stat-separator { color: #e0e0e0; font-size: 1.5rem; }
 .tags-container { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; }
-.participants, .huts { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-.participant-tag, .hut-tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; margin-right: 0.5rem; margin-top: 0.25rem; }
+.participants, .huts, .country { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.participant-tag, .hut-tag, .country-tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; margin-right: 0.5rem; margin-top: 0.25rem; }
 .participant-tag { background-color: #e9ecef; color: #495057; }
 .hut-tag { background-color: #d1ecf1; color: #0c5460; text-decoration: none; }
+.country-tag { background-color: #20b2aa; color: white; font-weight: 500; }
+
+/* Surf-specific styling */
+.surf-stats {
+  border-color: #20b2aa;
+}
+.surf-stats .stat-value {
+  color: #20b2aa;
+}
+
 .btn-delete { position: absolute; top: 1rem; right: 1rem; background-color: transparent; border: none; color: #aaa; cursor: pointer; font-size: 1.2rem; }
 .btn-delete:hover { color: #dc3545; }
 .pagination-controls { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; padding: 1rem; background-color: #f8f9fa; border-radius: 8px; margin-top: -1rem; margin-bottom: 2rem; }
@@ -405,6 +578,24 @@ const prevPage = () => {
     font-size: 0.95rem;
     margin-top: 0.25rem;
     border-radius: 10px;
+  }
+  
+  /* Mobile responsive category tabs */
+  .category-tabs {
+    margin: 0 0.5rem 1.5rem 0.5rem;
+    padding: 0.4rem;
+    gap: 0.3rem;
+  }
+  
+  .category-tab {
+    flex: 1;
+    justify-content: center;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  .category-icon {
+    font-size: 1rem;
   }
   
   .results-count {

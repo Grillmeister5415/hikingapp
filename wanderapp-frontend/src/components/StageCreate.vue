@@ -64,6 +64,14 @@ import { useRouter, useRoute } from 'vue-router';
 import gpxParser from 'gpxparser';
 import api from '../api';
 
+// Props for activity type (can be passed from router)
+const props = defineProps({
+  activityType: {
+    type: String,
+    default: 'HIKING'
+  }
+});
+
 const route = useRoute();
 const router = useRouter();
 const tripId = ref(route.params.tripId);
@@ -129,6 +137,7 @@ const handleSubmit = async () => {
       date: date.value,
       description: description.value,
       trip: parseInt(tripId.value),
+      activity_type: props.activityType, // Use the activity type from props
       track_points: parsedTrack.value || [],
       manual_duration: durationToSend,
       manual_length_km: manual_length_km.value || null,

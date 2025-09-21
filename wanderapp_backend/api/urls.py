@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import TripViewSet, StageViewSet, UserStatsView, CommentViewSet, HutViewSet, UserViewSet, DashboardDataView, PhotoViewSet
+from .views import TripViewSet, StageViewSet, UserStatsView, CommentViewSet, HutViewSet, UserViewSet, DashboardDataView, PhotoViewSet, CountriesAPIView
 
 router = DefaultRouter()
 router.register(r'trips', TripViewSet, basename='trip')
@@ -17,4 +17,6 @@ urlpatterns = [
     # NEU: Zwei Routen für die Dashboard-Daten
     path('dashboard-data/', DashboardDataView.as_view(), name='my-dashboard-data'),
     path('dashboard-data/<int:pk>/', DashboardDataView.as_view(), name='user-dashboard-data'),
+    # Countries API for surf trips
+    path('countries/', CountriesAPIView.as_view(), name='countries'),
 ]

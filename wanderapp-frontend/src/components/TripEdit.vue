@@ -40,8 +40,9 @@
 
         <hr>
 
-        <div class="form-group">
-          <label>Übernachtung in Hütten</label>
+        <!-- Show huts section only for hiking trips -->
+        <div v-if="trip.activity_type === 'HIKING'" class="form-group">
+          <label>🏔️ Übernachtung in Hütten</label>
           <ul v-if="trip.huts && trip.huts.length" class="hut-list">
             <li v-for="(hut, index) in trip.huts" :key="index">
               {{ hut.name }} <span v-if="hut.link" class="hut-link">({{ hut.link }})</span>
@@ -53,6 +54,37 @@
             <input type="url" v-model="newHutLink" placeholder="Link (optional)" />
             <button type="button" @click="addHut" class="btn-add-item">Hütte hinzufügen</button>
           </div>
+        </div>
+
+        <!-- Show country dropdown only for surf trips -->
+        <div v-if="trip.activity_type === 'SURFING'" class="form-group">
+          <label for="country">🌍 Land *</label>
+          <div v-if="countriesLoading">Lade Länder...</div>
+          <select v-else id="country" v-model="selectedCountry" required class="country-select">
+            <option value="">Land auswählen...</option>
+            
+            <!-- Popular surf destinations -->
+            <optgroup label="🏄‍♂️ Beliebte Surf-Ziele" v-if="popularSurfDestinations.length">
+              <option 
+                v-for="dest in popularSurfDestinations" 
+                :key="dest.code" 
+                :value="dest.code"
+              >
+                {{ dest.display }}
+              </option>
+            </optgroup>
+            
+            <!-- All other countries -->
+            <optgroup label="🌍 Alle Länder" v-if="allCountries.length">
+              <option 
+                v-for="country_option in allCountries" 
+                :key="country_option.code" 
+                :value="country_option.code"
+              >
+                {{ country_option.display }}
+              </option>
+            </optgroup>
+          </select>
         </div>
 
         <button type="submit" :disabled="isSubmitting">
@@ -84,6 +116,12 @@ const selectedParticipants = ref([]);
 const newHutName = ref('');
 const newHutLink = ref('');
 
+// Country (for surf trips)
+const selectedCountry = ref('');
+const popularSurfDestinations = ref([]);
+const allCountries = ref([]);
+const countriesLoading = ref(false);
+
 onMounted(async () => {
   try {
     // Fetch both the trip data and the list of all users at the same time
@@ -98,6 +136,26 @@ onMounted(async () => {
     // Pre-select the checkboxes for participants who are already on the trip
     if (trip.value.participants) {
       selectedParticipants.value = trip.value.participants.map(p => p.id);
+    }
+
+    // Set the selected country for surf trips
+    if (trip.value.activity_type === 'SURFING' && trip.value.country) {
+      selectedCountry.value = trip.value.country;
+    }
+
+    // Load countries for surf trips
+    if (trip.value.activity_type === 'SURFING') {
+      countriesLoading.value = true;
+      try {
+        const countriesResponse = await api.get('/countries/');
+        popularSurfDestinations.value = countriesResponse.data.popular_surf_destinations;
+        allCountries.value = countriesResponse.data.all_countries;
+      } catch (countriesErr) {
+        console.error('Error loading countries:', countriesErr);
+        error.value = 'Fehler beim Laden der Länderliste.';
+      } finally {
+        countriesLoading.value = false;
+      }
     }
   } catch (err) {
     error.value = "Fehler beim Laden der Trip-Daten.";
@@ -135,8 +193,15 @@ const handleSubmit = async () => {
       start_date: trip.value.start_date,
       end_date: trip.value.end_date,
       participants_ids: selectedParticipants.value,
-      huts_data: trip.value.huts,
     };
+
+    // Add activity-specific data
+    if (trip.value.activity_type === 'HIKING') {
+      payload.huts_data = trip.value.huts;
+    } else if (trip.value.activity_type === 'SURFING') {
+      payload.country_code = selectedCountry.value;
+    }
+
     await api.patch(`/trips/${tripId}/`, payload);
     router.push(`/trip/${tripId}`);
   } catch (err) {
@@ -168,4 +233,30 @@ input, textarea { padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; f
 button[type="submit"] { padding: 1rem; background-color: #42b983; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
 button:disabled { background-color: #ccc; cursor: not-allowed; }
 .error { color: red; }
+
+/* Country dropdown styles */
+.country-select {
+  padding: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  background: white;
+  min-width: 100%;
+}
+
+.country-select:focus {
+  outline: none;
+  border-color: #20b2aa;
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+}
+
+.country-select optgroup {
+  font-weight: bold;
+  color: #333;
+}
+
+.country-select option {
+  font-weight: normal;
+  padding: 0.5rem;
+}
 </style>
