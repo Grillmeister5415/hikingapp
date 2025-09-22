@@ -81,13 +81,29 @@ const router = createRouter({
 });
 
 // Navigation guard to protect routes
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const publicPages = ['/login'];
   const authRequired = !publicPages.includes(to.path);
-  const loggedIn = localStorage.getItem('accessToken');
+  const hasToken = localStorage.getItem('accessToken');
 
-  if (authRequired && !loggedIn) {
+  // If going to login page and already authenticated, redirect to home
+  if (to.path === '/login' && hasToken) {
+    return next('/');
+  }
+
+  // If auth required but no token, redirect to login
+  if (authRequired && !hasToken) {
     return next('/login');
+  }
+
+  // Prevent navigation during token refresh to avoid race conditions
+  const { isAuthLoading } = await import('./store');
+  if (isAuthLoading.value && authRequired) {
+    // Wait briefly for auth operation to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (!localStorage.getItem('accessToken')) {
+      return next('/login');
+    }
   }
 
   next();

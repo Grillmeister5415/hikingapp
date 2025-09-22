@@ -24,11 +24,26 @@
       </button>
     </div>
 
+    <!-- Enhanced Search for Surfing -->
+    <AdvancedSearch
+      v-if="activeCategory === 'SURFING'"
+      :showAdvancedFilters="showAdvancedFilters"
+      @search="handleAdvancedSearch"
+    />
+
+    <!-- Enhanced Search for Hiking -->
+    <HikingAdvancedSearch
+      v-if="activeCategory === 'HIKING'"
+      :showAdvancedFilters="showAdvancedFilters"
+      @search="handleHikingAdvancedSearch"
+    />
+
+    <!-- Basic Search Bar -->
     <div class="filter-bar">
       <input type="text" v-model="filters.search" placeholder="Suche nach Name, Ort..." class="search-input" />
       <div class="filter-group">
         <label>Teilnehmer:</label>
-        <MultiSelectDropdown 
+        <MultiSelectDropdown
           :options="allUsers"
           v-model="filters.participants"
           placeholder="Alle Teilnehmer"
@@ -42,9 +57,18 @@
         <label>Bis:</label>
         <input type="date" v-model="filters.to_date" />
       </div>
+      <button
+        v-if="activeCategory === 'SURFING' || activeCategory === 'HIKING'"
+        @click="showAdvancedFilters = !showAdvancedFilters"
+        class="btn-clear btn-advanced"
+        :class="{ active: showAdvancedFilters }"
+      >
+        {{ showAdvancedFilters ? 'Erweiterte Filter ausblenden' : 'Erweiterte Filter' }}
+      </button>
       <button @click="clearFilters" class="btn-clear">Filter zurücksetzen</button>
       <p class="results-count">{{ totalTrips }} Trip(s) gefunden.</p>
     </div>
+
     
     <div class="pagination-controls">
       <div class="page-size-selector">
@@ -159,6 +183,8 @@ import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import { currentUser } from '../store';
 import MultiSelectDropdown from './MultiSelectDropdown.vue';
+import AdvancedSearch from './AdvancedSearch.vue';
+import HikingAdvancedSearch from './HikingAdvancedSearch.vue';
 
 // Accept props for default category
 const props = defineProps({
@@ -196,6 +222,8 @@ const filters = ref({
   to_date: ''
 });
 
+const showAdvancedFilters = ref(false);
+
 const fetchTrips = async () => {
   try {
     isLoading.value = true;
@@ -212,7 +240,7 @@ const fetchTrips = async () => {
     
     // --- Add activity type filter based on active category ---
     params.append('activity_type', activeCategory.value);
-    
+
     // --- Add pagination parameters ---
     params.append('page', currentPage.value);
     params.append('page_size', pageSize.value);
@@ -243,6 +271,79 @@ const fetchUsers = async () => {
   }
 };
 
+const handleAdvancedSearch = (advancedFilters) => {
+  // Merge advanced filters with existing filters
+  const combinedParams = new URLSearchParams();
+
+  // Add basic filters
+  if (filters.value.search) combinedParams.append('search', filters.value.search);
+  if (filters.value.participants.length > 0) {
+    filters.value.participants.forEach(id => combinedParams.append('participants', id));
+  }
+  if (filters.value.from_date) combinedParams.append('from_date', filters.value.from_date);
+  if (filters.value.to_date) combinedParams.append('to_date', filters.value.to_date);
+
+  // Add advanced filters
+  Object.keys(advancedFilters).forEach(key => {
+    if (advancedFilters[key] !== '' && advancedFilters[key] !== null) {
+      combinedParams.append(key, advancedFilters[key]);
+    }
+  });
+
+  // Add activity type and pagination
+  combinedParams.append('activity_type', activeCategory.value);
+  combinedParams.append('page', 1);
+  combinedParams.append('page_size', pageSize.value);
+
+  // Make API call with combined filters
+  fetchTripsWithAdvancedParams(combinedParams);
+};
+
+const handleHikingAdvancedSearch = (advancedFilters) => {
+  // Merge advanced hiking filters with existing filters
+  const combinedParams = new URLSearchParams();
+  // Add basic filters
+  if (filters.value.search) combinedParams.append('search', filters.value.search);
+  if (filters.value.participants.length > 0) {
+    filters.value.participants.forEach(id => combinedParams.append('participants', id));
+  }
+  if (filters.value.from_date) combinedParams.append('from_date', filters.value.from_date);
+  if (filters.value.to_date) combinedParams.append('to_date', filters.value.to_date);
+  // Add hiking advanced filters
+  Object.keys(advancedFilters).forEach(key => {
+    if (advancedFilters[key] !== '' && advancedFilters[key] !== null) {
+      combinedParams.append(key, advancedFilters[key]);
+    }
+  });
+  // Add activity type and pagination
+  combinedParams.append('activity_type', activeCategory.value);
+  combinedParams.append('page', 1);
+  combinedParams.append('page_size', pageSize.value);
+  // Make API call with combined filters
+  fetchTripsWithAdvancedParams(combinedParams);
+};
+
+const fetchTripsWithAdvancedParams = async (params) => {
+  try {
+    isLoading.value = true;
+    error.value = null;
+    currentPage.value = 1;
+
+    const response = await api.get(`/trips/`, { params });
+
+    trips.value = response.data.results;
+    totalTrips.value = response.data.count;
+    nextPageUrl.value = response.data.next;
+    previousPageUrl.value = response.data.previous;
+
+  } catch (err) {
+    console.error("Advanced Search API Error:", err.response?.data || err.message);
+    error.value = "Fehler beim Laden der gefilterten Trips.";
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 // --- Category management ---
 const setActiveCategory = (category) => {
   // Navigate to category-specific URL - the route watcher will handle the data refresh
@@ -250,7 +351,7 @@ const setActiveCategory = (category) => {
     'HIKING': '/hiking',
     'SURFING': '/surfing'
   };
-  
+
   const targetRoute = categoryRoutes[category];
   if (targetRoute && route.path !== targetRoute) {
     router.push(targetRoute);
@@ -373,9 +474,10 @@ const formatDuration = (duration) => {
 };
 
 const logout = () => {
-  localStorage.clear();
-  currentUser.value = null;
-  router.push('/login');
+  // Use centralized logout from api.js
+  import('../api').then(module => {
+    module.logout();
+  });
 };
 
 // --- NEW: Pagination methods ---
@@ -472,6 +574,9 @@ const getCountryWithFlag = (trip) => {
 .filter-group label { font-weight: 500; }
 .filter-group input[type="date"] { padding: 0.7rem; border-radius: 8px; border: 1px solid #ccc; }
 .btn-clear { background-color: #6c757d; color: white; border: none; padding: 1rem 1.5rem; border-radius: 12px; cursor: pointer; font-size: 1rem; }
+.btn-advanced { background-color: #42b983; transition: background-color 0.2s ease; }
+.btn-advanced:hover { background-color: #369870; }
+.btn-advanced.active { background-color: #28a745; }
 .trip-list { list-style: none; padding: 0; }
 .trip-card { display: flex; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: box-shadow 0.2s ease-in-out; position: relative; }
 .trip-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -511,6 +616,8 @@ const getCountryWithFlag = (trip) => {
 .page-navigation button:disabled { opacity: 0.5; cursor: not-allowed; }
 .results-count { text-align: right; color: #6c757d; margin: 0; }
 .filter-bar .results-count { margin-left: auto; font-weight: 500; }
+.results-summary { padding: 1rem; background-color: #f8f9fa; border-radius: 8px; margin-bottom: 1rem; text-align: center; }
+.results-summary .results-count { text-align: center; font-weight: 500; color: #20b2aa; }
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {

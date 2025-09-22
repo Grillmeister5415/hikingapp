@@ -329,3 +329,80 @@ class CountriesAPIView(APIView):
             'popular_surf_destinations': popular_destinations,
             'all_countries': all_countries
         })
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_suggestions(request):
+    """
+    Return search suggestions for autocomplete functionality
+    """
+    query = request.GET.get('q', '').lower().strip()
+
+    if len(query) < 2:
+        return Response({'suggestions': []})
+
+    suggestions = []
+
+    # Search surf spots
+    surf_spots = Stage.objects.filter(
+        surf_spot__icontains=query,
+        activity_type='SURFING',
+        surf_spot__isnull=False
+    ).exclude(surf_spot__exact='').values_list('surf_spot', flat=True).distinct()[:5]
+
+    for spot in surf_spots:
+        suggestions.append({
+            'type': 'surf_spot',
+            'label': f'🏄 {spot}',
+            'value': spot,
+            'category': 'Surf Spots'
+        })
+
+    # Search countries
+    countries_with_surf = Trip.objects.filter(
+        country__icontains=query,
+        activity_type='SURFING'
+    ).values_list('country', flat=True).distinct()[:5]
+
+    for country in countries_with_surf:
+        if country:
+            suggestions.append({
+                'type': 'country',
+                'label': f'🌍 {country}',
+                'value': country,
+                'category': 'Countries'
+            })
+
+    # Search surfboard types
+    surfboards = Stage.objects.filter(
+        surfboard_used__icontains=query,
+        activity_type='SURFING',
+        surfboard_used__isnull=False
+    ).exclude(surfboard_used__exact='').values_list('surfboard_used', flat=True).distinct()[:5]
+
+    for board in surfboards:
+        suggestions.append({
+            'type': 'surfboard',
+            'label': f'🏄‍♂️ {board}',
+            'value': board,
+            'category': 'Surfboards'
+        })
+
+    # Search participant usernames
+    participants = User.objects.filter(
+        username__icontains=query,
+        trip_participants__activity_type='SURFING'
+    ).values_list('username', flat=True).distinct()[:3]
+
+    for participant in participants:
+        suggestions.append({
+            'type': 'participant',
+            'label': f'👤 {participant}',
+            'value': participant,
+            'category': 'Surfers'
+        })
+
+    return Response({'suggestions': suggestions[:15]})

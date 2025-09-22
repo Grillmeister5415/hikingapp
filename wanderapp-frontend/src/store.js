@@ -1,20 +1,54 @@
 // src/store.js
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import api from './api';
 
-// Eine reaktive Variable, um den eingeloggten Benutzer zu speichern
+// Reactive auth state
 export const currentUser = ref(null);
+export const isAuthLoading = ref(false);
+export const authMessage = ref(null);
 
-// Eine Funktion, die die Benutzerdaten vom Backend abruft
+// Computed auth status
+export const isAuthenticated = computed(() => {
+  return !!(currentUser.value && localStorage.getItem('accessToken'));
+});
+
+// Display auth message temporarily
+export function showAuthMessage(message, type = 'info', duration = 5000) {
+  authMessage.value = { text: message, type };
+  setTimeout(() => {
+    if (authMessage.value?.text === message) {
+      authMessage.value = null;
+    }
+  }, duration);
+}
+
+// Fetch current user with loading state
 export async function fetchCurrentUser() {
   const token = localStorage.getItem('accessToken');
-  if (token && !currentUser.value) {
+  if (token && !currentUser.value && !isAuthLoading.value) {
+    isAuthLoading.value = true;
     try {
       const response = await api.get('/users/me/');
       currentUser.value = response.data;
     } catch (error) {
       console.error("Could not fetch user.", error);
       currentUser.value = null;
+
+      // Show user-friendly message for auth errors
+      if (error.response?.status === 401) {
+        showAuthMessage('Session expired. Please log in again.', 'warning');
+      } else {
+        showAuthMessage('Unable to verify login status.', 'error');
+      }
+    } finally {
+      isAuthLoading.value = false;
     }
   }
+}
+
+// Clear auth state (called from logout)
+export function clearAuthState() {
+  currentUser.value = null;
+  isAuthLoading.value = false;
+  authMessage.value = null;
 }

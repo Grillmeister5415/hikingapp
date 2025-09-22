@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import TripViewSet, StageViewSet, UserStatsView, CommentViewSet, HutViewSet, UserViewSet, DashboardDataView, PhotoViewSet, CountriesAPIView
+from .views import TripViewSet, StageViewSet, UserStatsView, CommentViewSet, HutViewSet, UserViewSet, DashboardDataView, PhotoViewSet, CountriesAPIView, search_suggestions
 
 router = DefaultRouter()
 router.register(r'trips', TripViewSet, basename='trip')
@@ -19,4 +19,6 @@ urlpatterns = [
     path('dashboard-data/<int:pk>/', DashboardDataView.as_view(), name='user-dashboard-data'),
     # Countries API for surf trips
     path('countries/', CountriesAPIView.as_view(), name='countries'),
+    # Search suggestions for autocomplete
+    path('search-suggestions/', search_suggestions, name='search-suggestions'),
 ]
