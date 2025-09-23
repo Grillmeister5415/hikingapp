@@ -5,6 +5,7 @@ from django_countries.fields import CountryField
 
 class User(AbstractUser):
     email = models.EmailField(unique=True, blank=False)
+    is_quick_user = models.BooleanField(default=False, help_text="User created quickly with just a name, without full account setup")
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
 

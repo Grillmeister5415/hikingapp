@@ -139,6 +139,52 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['post'])
+    def quick_create(self, request):
+        """Create a lightweight user with just a username"""
+        username = request.data.get('username', '').strip()
+
+        if not username:
+            return Response({'error': 'Username is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if username already exists
+        if User.objects.filter(username=username).exists():
+            return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create user with auto-generated email
+        email = f"{username}@temp.wanderapp.local"
+
+        # Ensure unique email
+        counter = 1
+        while User.objects.filter(email=email).exists():
+            email = f"{username}{counter}@temp.wanderapp.local"
+            counter += 1
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            is_quick_user=True,
+            password=None  # No password for quick users
+        )
+
+        serializer = self.get_serializer(user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """Search users by username"""
+        query = request.GET.get('q', '').strip()
+
+        if len(query) < 2:
+            return Response({'users': []})
+
+        users = User.objects.filter(
+            username__icontains=query
+        ).order_by('username')[:10]  # Limit to 10 results
+
+        serializer = self.get_serializer(users, many=True)
+        return Response({'users': serializer.data})
+
 class UserStatsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, pk=None, *args, **kwargs):

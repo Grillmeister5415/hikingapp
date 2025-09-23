@@ -24,16 +24,10 @@
 
       <hr>
 
-      <div class="form-group">
-        <label>Teilnehmer</label>
-        <div v-if="usersLoading">Lade Benutzer...</div>
-        <div v-else class="checkbox-group">
-          <div v-for="user in allUsers" :key="user.id" class="checkbox-item">
-            <input type="checkbox" :id="`user-${user.id}`" :value="user.id" v-model="selectedParticipants" />
-            <label :for="`user-${user.id}`">{{ user.username }}</label>
-          </div>
-        </div>
-      </div>
+      <ParticipantSelector
+        v-model="selectedParticipants"
+        :autofocus="false"
+      />
 
       <hr>
 
@@ -96,6 +90,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
+import ParticipantSelector from './ParticipantSelector.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -110,8 +105,6 @@ const end_date = ref('');
 const error = ref(null);
 const isSubmitting = ref(false);
 
-const allUsers = ref([]);
-const usersLoading = ref(true);
 const selectedParticipants = ref([]);
 
 // Huts (for hiking trips)
@@ -133,14 +126,11 @@ watch(start_date, (newStartDate) => {
 
 onMounted(async () => {
   try {
-    // Load users
-    const usersResponse = await api.get('/users/');
-    allUsers.value = usersResponse.data;
-
+    // Auto-add current user as participant
     const meResponse = await api.get('/users/me/');
-    const currentUserId = meResponse.data.id;
-    if (currentUserId && !selectedParticipants.value.includes(currentUserId)) {
-      selectedParticipants.value.push(currentUserId);
+    const currentUser = meResponse.data;
+    if (currentUser && !selectedParticipants.value.some(p => p.id === currentUser.id)) {
+      selectedParticipants.value.push(currentUser);
     }
 
     // Load countries for surf trips
@@ -159,8 +149,6 @@ onMounted(async () => {
     }
   } catch (err) {
     error.value = 'Fehler beim Laden der Daten.';
-  } finally {
-    usersLoading.value = false;
   }
 });
 
@@ -204,7 +192,7 @@ const handleSubmit = async () => {
       start_date: start_date.value,
       end_date: end_date.value,
       activity_type: activityType,
-      participants_ids: selectedParticipants.value,
+      participants_ids: selectedParticipants.value.map(p => p.id),
     };
 
     // Add activity-specific data
@@ -239,9 +227,6 @@ const handleSubmit = async () => {
 .form-group-row .form-group { flex: 1; }
 label { margin-bottom: 0.5rem; font-weight: bold; }
 input, textarea { padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-.checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; }
-.checkbox-item { display: flex; align-items: center; }
-.checkbox-item input { margin-right: 0.5rem; width: auto; }
 .hut-list { list-style: none; padding: 0; margin-bottom: 1rem; }
 .hut-list li { display: flex; justify-content: space-between; align-items: center; background: #f1f1f1; padding: 0.5rem 1rem; border-radius: 4px; margin-bottom: 0.5rem; }
 .hut-link { color: #555; font-style: italic; font-size: 0.9rem; }

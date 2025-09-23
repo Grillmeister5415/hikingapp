@@ -10,7 +10,7 @@ from datetime import timedelta
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email', 'is_quick_user']
 
 class TrackPointCreateSerializer(serializers.Serializer):
     lat = serializers.FloatField()

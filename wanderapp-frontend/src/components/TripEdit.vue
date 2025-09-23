@@ -27,16 +27,10 @@
 
         <hr>
 
-        <div class="form-group">
-          <label>Teilnehmer</label>
-          <div v-if="usersLoading">Lade Benutzer...</div>
-          <div v-else class="checkbox-group">
-            <div v-for="user in allUsers" :key="user.id" class="checkbox-item">
-              <input type="checkbox" :id="`user-${user.id}`" :value="user.id" v-model="selectedParticipants" />
-              <label :for="`user-${user.id}`">{{ user.username }}</label>
-            </div>
-          </div>
-        </div>
+        <ParticipantSelector
+          v-model="selectedParticipants"
+          :autofocus="false"
+        />
 
         <hr>
 
@@ -99,6 +93,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../api';
+import ParticipantSelector from './ParticipantSelector.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -109,8 +104,6 @@ const isLoading = ref(true);
 const error = ref(null);
 const isSubmitting = ref(false);
 
-const allUsers = ref([]);
-const usersLoading = ref(true);
 const selectedParticipants = ref([]);
 
 const newHutName = ref('');
@@ -124,18 +117,13 @@ const countriesLoading = ref(false);
 
 onMounted(async () => {
   try {
-    // Fetch both the trip data and the list of all users at the same time
-    const [tripResponse, usersResponse] = await Promise.all([
-      api.get(`/trips/${tripId}/`),
-      api.get('/users/')
-    ]);
-
+    // Fetch the trip data
+    const tripResponse = await api.get(`/trips/${tripId}/`);
     trip.value = tripResponse.data;
-    allUsers.value = usersResponse.data;
 
-    // Pre-select the checkboxes for participants who are already on the trip
+    // Pre-populate the selected participants with full user objects
     if (trip.value.participants) {
-      selectedParticipants.value = trip.value.participants.map(p => p.id);
+      selectedParticipants.value = [...trip.value.participants];
     }
 
     // Set the selected country for surf trips
@@ -161,7 +149,6 @@ onMounted(async () => {
     error.value = "Fehler beim Laden der Trip-Daten.";
   } finally {
     isLoading.value = false;
-    usersLoading.value = false;
   }
 });
 
@@ -192,7 +179,7 @@ const handleSubmit = async () => {
       description: trip.value.description,
       start_date: trip.value.start_date,
       end_date: trip.value.end_date,
-      participants_ids: selectedParticipants.value,
+      participants_ids: selectedParticipants.value.map(p => p.id),
     };
 
     // Add activity-specific data
@@ -220,9 +207,6 @@ const handleSubmit = async () => {
 .form-group-row .form-group { flex: 1; }
 label { margin-bottom: 0.5rem; font-weight: bold; }
 input, textarea { padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-.checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; }
-.checkbox-item { display: flex; align-items: center; }
-.checkbox-item input { margin-right: 0.5rem; width: auto; }
 .hut-list { list-style: none; padding: 0; margin-bottom: 1rem; }
 .hut-list li { display: flex; justify-content: space-between; align-items: center; background: #f1f1f1; padding: 0.5rem 1rem; border-radius: 4px; margin-bottom: 0.5rem; }
 .hut-link { color: #555; font-style: italic; font-size: 0.9rem; }
