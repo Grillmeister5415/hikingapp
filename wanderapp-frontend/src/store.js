@@ -52,3 +52,24 @@ export function clearAuthState() {
   isAuthLoading.value = false;
   authMessage.value = null;
 }
+
+// Tab state management
+export const currentTab = ref(localStorage.getItem('currentTab') || 'HIKING');
+
+// Set current tab and persist to localStorage
+export function setCurrentTab(tab) {
+  currentTab.value = tab;
+  localStorage.setItem('currentTab', tab);
+}
+
+// Get route path for current tab
+export function getCurrentTabRoute() {
+  switch (currentTab.value) {
+    case 'SURFING':
+      return '/surfing';
+    case 'HIKING':
+      return '/hiking';
+    default:
+      return '/hiking';
+  }
+}

@@ -20,10 +20,10 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
 import api from '@/api'; // <-- shared axios instance with baseURL: '/api'
+import { useTabAwareNavigation } from '../utils/navigation.js';
 
-const router = useRouter();
+const { navigateToTripList } = useTabAwareNavigation();
 const email = ref('');
 const password = ref('');
 const error = ref(null);
@@ -43,7 +43,7 @@ const handleLogin = async () => {
     localStorage.setItem('refreshToken', response.data.refresh);
 
     // Nach erfolgreichem Login zur Hauptseite weiterleiten
-    router.push('/');
+    navigateToTripList();
   } catch (err) {
     if (err.response && err.response.status === 401) {
       error.value = 'Ungültige Anmeldedaten. Bitte versuchen Sie es erneut.';
