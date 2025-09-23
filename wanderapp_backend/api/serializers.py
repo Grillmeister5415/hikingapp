@@ -10,7 +10,7 @@ from datetime import timedelta
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email', 'is_quick_user']
 
 class TrackPointCreateSerializer(serializers.Serializer):
     lat = serializers.FloatField()
@@ -73,10 +73,14 @@ class StageSerializer(serializers.ModelSerializer):
         model = Stage
         fields = [
             'id', 'name', 'date', 'description', 'trip', 'creator', 'participants', 'participants_ids',
+            'activity_type',
             'manual_duration', 'manual_length_km', 'manual_elevation_gain',
             'calculated_length_km', 'calculated_elevation_gain', 'calculated_elevation_loss', 'calculated_duration',
-            'external_link', 'track', 'track_points', 'comments',
-            'photos'
+            'external_link', 'track', 'track_points', 'comments', 'photos',
+            # Surf-specific fields
+            'surf_spot', 'time_in_water', 'surfboard_used', 'wave_height', 'wave_quality', 
+            'water_temperature', 'waves_caught', 'tide_stage', 'tide_movement',
+            'swell_direction', 'wind_direction', 'wave_energy'
         ]
         extra_kwargs = { 'trip': {'required': False} }
 
@@ -151,19 +155,40 @@ class TripListSerializer(serializers.ModelSerializer):
     participants = UserSerializer(many=True, read_only=True)
     creator = UserSerializer(read_only=True)
     huts = HutSerializer(many=True, read_only=True)
+    country = serializers.SerializerMethodField()
+    country_display = serializers.CharField(source='get_country_display', read_only=True)
     
     # All your annotated fields, correctly defined as read-only
     total_distance = serializers.FloatField(read_only=True)
     total_gain = serializers.IntegerField(read_only=True)
     total_loss = serializers.IntegerField(read_only=True)
     total_duration = serializers.DurationField(read_only=True)
+    
+    # Surf-specific totals
+    total_surf_time = serializers.DurationField(read_only=True)
+    total_wave_count = serializers.IntegerField(read_only=True)
+    unique_surf_spots_count = serializers.IntegerField(read_only=True)
+    
+    # Stage count for different activity types
+    stage_count = serializers.SerializerMethodField()
+    surf_session_count = serializers.SerializerMethodField()
+    
+    def get_country(self, obj):
+        return str(obj.country) if obj.country else ''
+    
+    def get_stage_count(self, obj):
+        return obj.stages.count()
+    
+    def get_surf_session_count(self, obj):
+        return obj.stages.filter(activity_type='SURFING').count()
 
     class Meta:
         model = Trip
         # These are the fields from your original serializer, minus 'stages' and write-only fields
         fields = [
-            'id', 'name', 'description', 'start_date', 'end_date', 'creator', 
-            'participants', 'huts', 'total_distance', 'total_gain', 'total_loss', 'total_duration'
+            'id', 'name', 'description', 'start_date', 'end_date', 'activity_type', 'creator', 
+            'participants', 'huts', 'country', 'country_display', 'total_distance', 'total_gain', 'total_loss', 'total_duration',
+            'total_surf_time', 'total_wave_count', 'unique_surf_spots_count', 'stage_count', 'surf_session_count'
         ]
 
 class TripDetailSerializer(serializers.ModelSerializer):
@@ -172,24 +197,40 @@ class TripDetailSerializer(serializers.ModelSerializer):
     stages = StageSerializer(many=True, read_only=True) # Includes the heavy stages data
     creator = UserSerializer(read_only=True)
     huts = HutSerializer(many=True, read_only=True)
+    country = serializers.SerializerMethodField()
+    country_display = serializers.CharField(source='get_country_display', read_only=True)
     
     participants_ids = serializers.PrimaryKeyRelatedField(
         many=True, write_only=True, queryset=User.objects.all(), source='participants', required=False
     )
     huts_data = HutCreateSerializer(many=True, write_only=True, required=False)
+    country_code = serializers.CharField(write_only=True, required=False, source='country')
 
     total_distance = serializers.FloatField(read_only=True)
     total_gain = serializers.IntegerField(read_only=True)
     total_loss = serializers.IntegerField(read_only=True)
     total_duration = serializers.DurationField(read_only=True)
+    
+    # Surf-specific totals
+    total_surf_time = serializers.DurationField(read_only=True)
+    total_wave_count = serializers.IntegerField(read_only=True)
+    unique_surf_spots_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Trip
         fields = [
-            'id', 'name', 'description', 'start_date', 'end_date', 'creator', 
-            'participants', 'stages', 'huts', 'total_distance', 'total_gain', 'total_loss', 'total_duration',
-            'participants_ids', 'huts_data'
+            'id', 'name', 'description', 'start_date', 'end_date', 'activity_type', 'creator', 
+            'participants', 'stages', 'huts', 'country', 'country_display', 'total_distance', 'total_gain', 'total_loss', 'total_duration',
+            'total_surf_time', 'total_wave_count', 'unique_surf_spots_count', 'participants_ids', 'huts_data', 'country_code'
         ]
+    
+    def get_country(self, obj):
+        return str(obj.country) if obj.country else ''
+    
+    def validate(self, data):
+        if data.get('activity_type') == 'SURFING' and not data.get('country'):
+            raise serializers.ValidationError("Country is required for surf trips")
+        return data
     
     def create(self, validated_data):
         huts_data = validated_data.pop('huts_data', [])

@@ -42,7 +42,7 @@ onMounted(async () => {
     // Karte initialisieren
     const map = new mapboxgl.Map({
       container: mapContainer.value,
-      style: 'mapbox://styles/mapbox/outdoors-v11',
+      style: 'mapbox://styles/fabemeier/cmfuxo187000901s840s6d4ev',
       center: [8.2275, 46.8182], // Standardzentrum
       zoom: 7
     });

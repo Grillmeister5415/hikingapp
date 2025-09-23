@@ -1,12 +1,14 @@
 <template>
   <div id="app-container">
     <router-view></router-view>
+    <AuthNotification />
   </div>
 </template>
 
 <script setup>
 import { onMounted } from 'vue';
 import { fetchCurrentUser } from './store';
+import AuthNotification from './components/AuthNotification.vue';
 
 // This line was missing. It tells the app to fetch the user's
 // data as soon as the application is loaded.
