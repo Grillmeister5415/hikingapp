@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
-from django.db.models import Sum, Count, Value, FloatField, DurationField, Q, Case, When, Avg, Min, Max
+from django.db.models import Sum, Count, Value, FloatField, DurationField, Q, Case, When, Avg, Min, Max, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from datetime import timedelta
 from .models import Trip, Stage, Comment, TrackPoint, Hut, User, Photo
@@ -28,29 +28,47 @@ class TripViewSet(viewsets.ModelViewSet):
     # We use your original get_queryset to ensure all annotations are present
     def get_queryset(self):
         queryset = Trip.objects.all().annotate(
-            # Hiking/Running totals
-            total_duration=Sum(Coalesce('stages__calculated_duration', 'stages__manual_duration', Value(timedelta(0)))),
-            total_distance=Sum(Coalesce('stages__calculated_length_km', 'stages__manual_length_km', Value(0.0))),
-            total_gain=Sum(Coalesce('stages__calculated_elevation_gain', 'stages__manual_elevation_gain', Value(0))),
-            total_loss=Sum(Coalesce('stages__calculated_elevation_loss', Value(0))),
-            
-            # Surfing totals
-            total_surf_time=Sum(
-                Case(
-                    When(stages__activity_type='SURFING', then=Coalesce('stages__time_in_water', Value(timedelta(0)))),
-                    default=Value(timedelta(0))
-                )
+            # Hiking/Running totals - using subqueries to prevent duplication from stage-level filtering
+            total_duration=Subquery(
+                Stage.objects.filter(trip=OuterRef('pk')).values('trip').annotate(
+                    total=Sum(Coalesce('calculated_duration', 'manual_duration', Value(timedelta(0))))
+                ).values('total')[:1]
             ),
-            total_wave_count=Sum(
-                Case(
-                    When(stages__activity_type='SURFING', then=Coalesce('stages__waves_caught', Value(0))),
-                    default=Value(0)
-                )
+            total_distance=Subquery(
+                Stage.objects.filter(trip=OuterRef('pk')).values('trip').annotate(
+                    total=Sum(Coalesce('calculated_length_km', 'manual_length_km', Value(0.0)))
+                ).values('total')[:1]
             ),
-            unique_surf_spots_count=Count(
-                'stages__surf_spot',
-                filter=Q(stages__activity_type='SURFING', stages__surf_spot__isnull=False, stages__surf_spot__gt=''),
-                distinct=True
+            total_gain=Subquery(
+                Stage.objects.filter(trip=OuterRef('pk')).values('trip').annotate(
+                    total=Sum(Coalesce('calculated_elevation_gain', 'manual_elevation_gain', Value(0)))
+                ).values('total')[:1]
+            ),
+            total_loss=Subquery(
+                Stage.objects.filter(trip=OuterRef('pk')).values('trip').annotate(
+                    total=Sum(Coalesce('calculated_elevation_loss', Value(0)))
+                ).values('total')[:1]
+            ),
+
+            # Surfing totals - using subqueries to prevent duplication
+            total_surf_time=Subquery(
+                Stage.objects.filter(trip=OuterRef('pk'), activity_type='SURFING').values('trip').annotate(
+                    total=Sum(Coalesce('time_in_water', Value(timedelta(0))))
+                ).values('total')[:1]
+            ),
+            total_wave_count=Subquery(
+                Stage.objects.filter(trip=OuterRef('pk'), activity_type='SURFING').values('trip').annotate(
+                    total=Sum(Coalesce('waves_caught', Value(0)))
+                ).values('total')[:1]
+            ),
+            unique_surf_spots_count=Subquery(
+                Stage.objects.filter(
+                    trip=OuterRef('pk'),
+                    activity_type='SURFING',
+                    surf_spot__isnull=False
+                ).exclude(surf_spot='').values('trip').annotate(
+                    count=Count('surf_spot', distinct=True)
+                ).values('count')[:1]
             )
         ).prefetch_related('participants', 'creator', 'huts')
         return queryset.order_by('-start_date')
