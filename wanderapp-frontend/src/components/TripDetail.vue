@@ -94,7 +94,10 @@
         <div class="stage-header">
           <div class="stage-title">
             <span class="activity-icon">{{ getActivityIcon(stage.activity_type) }}</span>
-            <h3>{{ stage.name }} ({{ formatDate(stage.date) }})</h3>
+            <div class="title-content">
+              <h3>{{ stage.name }}</h3>
+              <div class="stage-date">{{ formatDate(stage.date) }}</div>
+            </div>
           </div>
           <div class="stage-controls" v-if="currentUser && stage && stage.creator && currentUser.id === stage.creator.id">
             <router-link :to="getStageEditRoute(stage)" class="btn-edit">Bearbeiten ✏️</router-link>
@@ -560,6 +563,22 @@ a.hut-tag { text-decoration: none; }
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.title-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.title-content h3 {
+  margin-bottom: 0.25rem;
+}
+
+.stage-date {
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: #6c757d;
+  margin-top: 0;
 }
 
 .activity-icon {
