@@ -9,15 +9,15 @@
       <ul v-if="comments.length" class="comment-list">
         <li v-for="comment in comments" :key="comment.id">
           <div class="comment-header">
-            <strong>{{ comment.author.username }}:</strong>
-            <button 
-              v-if="canDelete(comment)" 
-              @click="deleteComment(comment.id)" 
-              class="btn-delete" 
+            <strong><router-link :to="`/dashboard/${comment.author.id}`" class="author-link">{{ comment.author.username }}</router-link>:</strong>
+            <button
+              v-if="canDelete(comment)"
+              @click="deleteComment(comment.id)"
+              class="btn-delete"
               title="Kommentar löschen"
             >🗑️</button>
           </div>
-          <p>{{ comment.text }}</p>
+          <p><ProcessedText :text="comment.text" :users="allUsers" /></p>
         </li>
       </ul>
       <p v-else><em>Noch keine Kommentare für diese Etappe.</em></p>
@@ -39,9 +39,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import api from '../api';
 import { currentUser } from '../store';
+import ProcessedText from './ProcessedText.vue';
+import { getTripUsers } from '../utils/textProcessing.js';
 
 const props = defineProps({
   stageId: {
@@ -55,6 +57,10 @@ const props = defineProps({
   stageCreatorId: {
     type: Number,
     required: true,
+  },
+  trip: {
+    type: Object,
+    required: true,
   }
 });
 
@@ -65,6 +71,20 @@ const newCommentText = ref('');
 const isSubmitting = ref(false);
 const error = ref(null);
 const commentsVisible = ref(false);
+
+// Get all relevant users for @mention processing
+const allUsers = computed(() => {
+  const tripUsers = getTripUsers(props.trip);
+
+  // Add comment authors to the users list
+  const commentAuthors = comments.value.map(comment => comment.author);
+
+  // Combine and remove duplicates
+  const allUsersList = [...tripUsers, ...commentAuthors];
+  return allUsersList.filter((user, index, self) =>
+    index === self.findIndex(u => u.id === user.id)
+  );
+});
 
 const canDelete = (comment) => {
   if (!currentUser.value) return false;
@@ -144,6 +164,13 @@ const submitComment = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.author-link {
+  color: #0d6efd;
+  text-decoration: none;
+}
+.author-link:hover {
+  text-decoration: underline;
 }
 .comment-list p {
   margin: 0.25rem 0 0 0;

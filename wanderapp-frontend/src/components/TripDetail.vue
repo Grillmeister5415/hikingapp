@@ -12,7 +12,7 @@
         </div>
       </div>
       <p v-if="trip.creator" class="creator"><em>Erstellt von: {{ trip.creator.username }}</em></p>
-      <p class="description"><em>{{ trip.description }}</em></p>
+      <p class="description"><em><ProcessedText :text="trip.description" :users="getTripUsers(trip)" /></em></p>
 
       <div class="trip-summary-card">
         <!-- Surf Trip Overview -->
@@ -62,12 +62,15 @@
         <div class="social-details">
           <div class="participants" v-if="trip.participants.length">
             <strong>Teilnehmer:</strong>
-            <span v-for="p in trip.participants" :key="p.id" class="participant-tag">{{ p.username }}</span>
+            <router-link v-for="p in trip.participants" :key="p.id" :to="`/dashboard/${p.id}`" class="participant-tag user-link">{{ p.username }}</router-link>
           </div>
           <!-- Show huts for hiking trips -->
           <div class="huts" v-if="trip.activity_type === 'HIKING' && trip.huts && trip.huts.length">
             <strong>🏔️ Hütten:</strong>
-            <span v-for="hut in trip.huts" :key="hut.id" class="hut-tag">{{ hut.name }}</span>
+            <template v-for="hut in trip.huts" :key="hut.id">
+              <a v-if="hut.link" :href="hut.link" target="_blank" @click.stop class="hut-tag">{{ hut.name }}</a>
+              <span v-else class="hut-tag">{{ hut.name }}</span>
+            </template>
           </div>
           
           <!-- Show surf spots for surf trips -->
@@ -99,7 +102,7 @@
           </div>
         </div>
         
-        <p class="description">{{ stage.description }}</p>
+        <p class="description"><ProcessedText :text="stage.description" :users="getStageUsers(stage, trip)" /></p>
 
         <!-- Hiking/Running Stats -->
         <div v-if="stage.activity_type !== 'SURFING'" class="stage-stats">
@@ -235,10 +238,11 @@
           />
         </div>
 
-        <CommentSection 
-          :stageId="stage.id" 
+        <CommentSection
+          :stageId="stage.id"
           :initialComments="stage.comments"
           :stageCreatorId="stage.creator.id"
+          :trip="trip"
           @comment-added="fetchTripData"
         />
       </div>
@@ -255,6 +259,8 @@ import HikeMap from './HikeMap.vue';
 import CommentSection from './CommentSection.vue';
 import { currentUser } from '../store';
 import ImageUploader from './ImageUploader.vue';
+import ProcessedText from './ProcessedText.vue';
+import { getTripUsers, getStageUsers } from '../utils/textProcessing.js';
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/style.css';
 
@@ -526,6 +532,8 @@ a[href="/"] { display: inline-block; margin-bottom: 1rem; }
 .participants, .huts, .surf-spots { margin-bottom: 0.5rem; }
 .participant-tag { background-color: #e9ecef; color: #495057; }
 .hut-tag { background-color: #d1ecf1; color: #0c5460; }
+.hut-tag:hover { background-color: #bee5eb; color: #062c33; }
+a.hut-tag { text-decoration: none; }
 .surf-spot-tag { background-color: #20b2aa; color: white; }
 .participant-tag, .hut-tag, .surf-spot-tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; margin-right: 0.5rem; margin-top: 0.25rem; }
 .stage-card { border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem; }
