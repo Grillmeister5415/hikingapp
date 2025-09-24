@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import TripViewSet, StageViewSet, UserStatsView, CommentViewSet, HutViewSet, UserViewSet, DashboardDataView, PhotoViewSet, CountriesAPIView, search_suggestions
+from .views import TripViewSet, StageViewSet, UserStatsView, CommentViewSet, HutViewSet, UserViewSet, DashboardDataView, PhotoViewSet, CountriesAPIView, search_suggestions, calculate_gpx_metrics
 
 router = DefaultRouter()
 router.register(r'trips', TripViewSet, basename='trip')
@@ -21,4 +21,6 @@ urlpatterns = [
     path('countries/', CountriesAPIView.as_view(), name='countries'),
     # Search suggestions for autocomplete
     path('search-suggestions/', search_suggestions, name='search-suggestions'),
+    # GPX calculations API
+    path('calculate-gpx/', calculate_gpx_metrics, name='calculate-gpx'),
 ]

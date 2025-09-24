@@ -27,6 +27,32 @@
         <input type="file" id="gpxFile" @change="handleFileUpload" accept=".gpx" />
         <div v-if="parsingStatus" class="parsing-status">{{ parsingStatus }}</div>
       </div>
+
+      <!-- GPX Preview Section -->
+      <div v-if="calculatedMetrics" class="gpx-preview">
+        <h4>📊 Aus GPX berechnet:</h4>
+        <div class="preview-stats">
+          <div class="preview-stat">
+            <span class="value">{{ calculatedMetrics.length }} <small>km</small></span>
+            <label>Distanz</label>
+          </div>
+          <div class="preview-stat">
+            <span class="value">{{ calculatedMetrics.elevationGain }} <small>m</small></span>
+            <label>Aufstieg</label>
+          </div>
+          <div class="preview-stat">
+            <span class="value">{{ calculatedMetrics.elevationLoss }} <small>m</small></span>
+            <label>Abstieg</label>
+          </div>
+          <div class="preview-stat" v-if="calculatedMetrics.durationFormatted">
+            <span class="value">{{ calculatedMetrics.durationFormatted }}</span>
+            <label>Dauer</label>
+          </div>
+        </div>
+        <p class="preview-note">
+          <small>💡 Diese Werte werden automatisch gespeichert. Manuelle Eingaben überschreiben diese Berechnungen.</small>
+        </p>
+      </div>
       
       <div class="manual-fields">
         <p>Manuelle Eingabe:</p>
@@ -47,8 +73,12 @@
           <input type="number" step="0.1" id="length" v-model="manual_length_km" />
         </div>
         <div class="form-group">
-          <label for="elevation">Höhenmeter (Aufstieg)</label>
-          <input type="number" id="elevation" v-model="manual_elevation_gain" />
+          <label for="elevation_gain">Höhenmeter (Aufstieg)</label>
+          <input type="number" id="elevation_gain" v-model="manual_elevation_gain" />
+        </div>
+        <div class="form-group">
+          <label for="elevation_loss">Höhenmeter (Abstieg)</label>
+          <input type="number" id="elevation_loss" v-model="manual_elevation_loss" />
         </div>
       </div>
       
@@ -83,10 +113,14 @@ const external_link = ref('');
 const manual_duration = ref('');
 const manual_length_km = ref(null);
 const manual_elevation_gain = ref(null);
+const manual_elevation_loss = ref(null);
 const parsedTrack = ref(null);
 const parsingStatus = ref('');
 const error = ref(null);
 const isSubmitting = ref(false);
+
+// Calculated values from GPX
+const calculatedMetrics = ref(null);
 
 const tripStartDate = ref('');
 const tripEndDate = ref('');
@@ -101,23 +135,46 @@ onMounted(async () => {
   }
 });
 
-const handleFileUpload = (event) => {
+const handleFileUpload = async (event) => {
   const file = event.target.files[0];
-  if (!file) { parsedTrack.value = null; parsingStatus.value = ''; return; }
+  if (!file) {
+    parsedTrack.value = null;
+    parsingStatus.value = '';
+    calculatedMetrics.value = null;
+    return;
+  }
   parsingStatus.value = 'Lese Datei...';
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const gpx = new gpxParser();
       gpx.parse(e.target.result);
-      if (gpx.tracks.length === 0 || gpx.tracks[0].points.length === 0) { throw new Error("GPX-Datei enthält keine Track-Punkte."); }
+      if (gpx.tracks.length === 0 || gpx.tracks[0].points.length === 0) {
+        throw new Error("GPX-Datei enthält keine Track-Punkte.");
+      }
+
       parsedTrack.value = gpx.tracks[0].points.map(p => ({
         lat: p.lat, lon: p.lon, ele: p.ele, time: p.time ? p.time.toISOString() : null
       }));
-      parsingStatus.value = `✅ ${parsedTrack.value.length} Punkte erfolgreich geparst.`;
+
+      parsingStatus.value = `📊 Berechne Metriken...`;
+
+      // Use backend API for accurate calculations
+      try {
+        const response = await api.post('/calculate-gpx/', {
+          track_points: parsedTrack.value
+        });
+        calculatedMetrics.value = response.data;
+        parsingStatus.value = `✅ ${parsedTrack.value.length} Punkte geparst und berechnet.`;
+      } catch (calcError) {
+        console.error('Calculation error:', calcError);
+        parsingStatus.value = `✅ ${parsedTrack.value.length} Punkte geparst. (Berechnung fehlgeschlagen)`;
+        calculatedMetrics.value = null;
+      }
     } catch (err) {
       parsingStatus.value = `❌ Fehler: ${err.message}`;
       parsedTrack.value = null;
+      calculatedMetrics.value = null;
     }
   };
   reader.readAsText(file);
@@ -142,6 +199,7 @@ const handleSubmit = async () => {
       manual_duration: durationToSend,
       manual_length_km: manual_length_km.value || null,
       manual_elevation_gain: manual_elevation_gain.value || null,
+      manual_elevation_loss: manual_elevation_loss.value || null,
       external_link: external_link.value
     };
     await api.post('/stages/', payload);
@@ -171,4 +229,49 @@ button:disabled { background-color: #ccc; cursor: not-allowed; }
 .manual-fields { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-top: 1rem; }
 .error { color: red; }
 .parsing-status { margin-top: 0.5rem; font-style: italic; }
+
+/* GPX Preview Styles */
+.gpx-preview {
+  border: 2px solid #42b983;
+  background-color: rgba(66, 185, 131, 0.05);
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+.gpx-preview h4 {
+  margin: 0 0 0.5rem 0;
+  color: #42b983;
+  font-size: 1rem;
+}
+.preview-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+.preview-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+.preview-stat .value {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #2c3e50;
+}
+.preview-stat label {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin: 0;
+  text-align: center;
+}
+.preview-note {
+  margin: 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(66, 185, 131, 0.3);
+}
+.preview-note small {
+  color: #6c757d;
+}
 </style>

@@ -90,6 +90,7 @@ class Stage(models.Model):
     manual_duration = models.DurationField(null=True, blank=True)
     manual_length_km = models.FloatField(null=True, blank=True)
     manual_elevation_gain = models.IntegerField(null=True, blank=True)
+    manual_elevation_loss = models.IntegerField(null=True, blank=True)
     calculated_length_km = models.FloatField(null=True, blank=True)
     calculated_elevation_gain = models.IntegerField(null=True, blank=True)
     calculated_elevation_loss = models.IntegerField(null=True, blank=True)

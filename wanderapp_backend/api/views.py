@@ -396,6 +396,8 @@ class CountriesAPIView(APIView):
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+import gpxpy
+from datetime import timedelta
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -470,3 +472,61 @@ def search_suggestions(request):
         })
 
     return Response({'suggestions': suggestions[:15]})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def calculate_gpx_metrics(request):
+    """
+    Calculate metrics from GPX file content using the same logic as the backend serializer
+    """
+    try:
+        gpx_content = request.data.get('gpx_content', '')
+        if not gpx_content:
+            return Response({'error': 'No GPX content provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Parse GPX content using gpxpy (same as in serializer)
+        gpx = gpxpy.gpx.GPX()
+        gpx_track = gpxpy.gpx.GPXTrack()
+        gpx.tracks.append(gpx_track)
+        gpx_segment = gpxpy.gpx.GPXTrackSegment()
+        gpx_track.segments.append(gpx_segment)
+
+        # Convert track points data to GPX points
+        track_points_data = request.data.get('track_points', [])
+        if not track_points_data:
+            return Response({'error': 'No track points provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        for point_data in track_points_data:
+            gpx_segment.points.append(gpxpy.gpx.GPXTrackPoint(
+                latitude=point_data['lat'],
+                longitude=point_data['lon'],
+                elevation=point_data.get('ele')
+            ))
+
+        # Calculate metrics using gpxpy (same as serializer)
+        calculated_length_km = round(gpx.length_3d() / 1000, 2)
+        uphill, downhill = gpx.get_uphill_downhill()
+        calculated_elevation_gain = round(uphill)
+        calculated_elevation_loss = round(downhill)
+
+        duration_in_seconds = gpx.get_duration()
+        calculated_duration = timedelta(seconds=duration_in_seconds) if duration_in_seconds else None
+
+        # Format duration for display
+        duration_formatted = ''
+        if calculated_duration:
+            total_seconds = int(calculated_duration.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            duration_formatted = f"{hours:02d}:{minutes:02d}"
+
+        return Response({
+            'length': calculated_length_km,
+            'elevationGain': calculated_elevation_gain,
+            'elevationLoss': calculated_elevation_loss,
+            'duration': total_seconds if calculated_duration else None,
+            'durationFormatted': duration_formatted
+        })
+
+    except Exception as e:
+        return Response({'error': f'GPX calculation failed: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)

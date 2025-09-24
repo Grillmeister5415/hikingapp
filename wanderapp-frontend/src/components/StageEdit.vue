@@ -32,7 +32,59 @@
             <input type="file" id="gpxFile" @change="handleFileUpload" accept=".gpx" />
             <div v-if="parsingStatus" class="parsing-status">{{ parsingStatus }}</div>
           </div>
-          
+
+          <!-- GPX Preview Section -->
+          <div v-if="calculatedMetrics" class="gpx-preview">
+            <h4>📊 Aus neuer GPX berechnet:</h4>
+            <div class="preview-stats">
+              <div class="preview-stat">
+                <span class="value">{{ calculatedMetrics.length }} <small>km</small></span>
+                <label>Distanz</label>
+              </div>
+              <div class="preview-stat">
+                <span class="value">{{ calculatedMetrics.elevationGain }} <small>m</small></span>
+                <label>Aufstieg</label>
+              </div>
+              <div class="preview-stat">
+                <span class="value">{{ calculatedMetrics.elevationLoss }} <small>m</small></span>
+                <label>Abstieg</label>
+              </div>
+              <div class="preview-stat" v-if="calculatedMetrics.durationFormatted">
+                <span class="value">{{ calculatedMetrics.durationFormatted }}</span>
+                <label>Dauer</label>
+              </div>
+            </div>
+            <p class="preview-note">
+              <small>💡 Diese Werte werden beim Speichern übernommen. Manuelle Eingaben überschreiben diese Berechnungen.</small>
+            </p>
+          </div>
+
+          <!-- Show existing calculated values if available -->
+          <div v-if="stage.calculated_length_km || stage.calculated_elevation_gain || stage.calculated_elevation_loss" class="existing-gpx-data">
+            <h4>📊 Aktuelle GPX-Berechnungen:</h4>
+            <div class="preview-stats">
+              <div class="preview-stat" v-if="stage.calculated_length_km">
+                <span class="value">{{ stage.calculated_length_km }} <small>km</small></span>
+                <label>Distanz</label>
+              </div>
+              <div class="preview-stat" v-if="stage.calculated_elevation_gain">
+                <span class="value">{{ stage.calculated_elevation_gain }} <small>m</small></span>
+                <label>Aufstieg</label>
+              </div>
+              <div class="preview-stat" v-if="stage.calculated_elevation_loss">
+                <span class="value">{{ stage.calculated_elevation_loss }} <small>m</small></span>
+                <label>Abstieg</label>
+              </div>
+              <div class="preview-stat" v-if="stage.calculated_duration">
+                <span class="value">{{ formatDurationForDisplay(stage.calculated_duration) }}</span>
+                <label>Dauer</label>
+              </div>
+            </div>
+            <p class="preview-note">
+              <small>💡 Diese Werte stammen aus der aktuellen GPX-Datei. Neue GPX-Datei hochladen, um sie zu ersetzen.</small>
+            </p>
+          </div>
+
           <div class="manual-fields">
             <p>Manuelle Eingabe:</p>
             <div class="form-group">
@@ -52,8 +104,12 @@
               <input type="number" step="0.1" id="length" v-model="stage.manual_length_km" />
             </div>
             <div class="form-group">
-              <label for="elevation">Höhenmeter (Aufstieg)</label>
-              <input type="number" id="elevation" v-model="stage.manual_elevation_gain" />
+              <label for="elevation_gain">Höhenmeter (Aufstieg)</label>
+              <input type="number" id="elevation_gain" v-model="stage.manual_elevation_gain" />
+            </div>
+            <div class="form-group">
+              <label for="elevation_loss">Höhenmeter (Abstieg)</label>
+              <input type="number" id="elevation_loss" v-model="stage.manual_elevation_loss" />
             </div>
           </div>
         </div>
@@ -156,6 +212,9 @@ const isSubmitting = ref(false);
 const parsedTrack = ref(null);
 const parsingStatus = ref('');
 
+// Calculated values from GPX
+const calculatedMetrics = ref(null);
+
 const tripStartDate = ref('');
 const tripEndDate = ref('');
 
@@ -186,23 +245,46 @@ onMounted(async () => {
   }
 });
 
-const handleFileUpload = (event) => {
+const handleFileUpload = async (event) => {
   const file = event.target.files[0];
-  if (!file) { parsedTrack.value = null; parsingStatus.value = ''; return; }
+  if (!file) {
+    parsedTrack.value = null;
+    parsingStatus.value = '';
+    calculatedMetrics.value = null;
+    return;
+  }
   parsingStatus.value = 'Lese Datei...';
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const gpx = new gpxParser();
       gpx.parse(e.target.result);
-      if (gpx.tracks.length === 0 || gpx.tracks[0].points.length === 0) { throw new Error("GPX-Datei enthält keine Track-Punkte."); }
+      if (gpx.tracks.length === 0 || gpx.tracks[0].points.length === 0) {
+        throw new Error("GPX-Datei enthält keine Track-Punkte.");
+      }
+
       parsedTrack.value = gpx.tracks[0].points.map(p => ({
         lat: p.lat, lon: p.lon, ele: p.ele, time: p.time ? p.time.toISOString() : null
       }));
-      parsingStatus.value = `✅ ${parsedTrack.value.length} Punkte erfolgreich geparst.`;
+
+      parsingStatus.value = `📊 Berechne Metriken...`;
+
+      // Use backend API for accurate calculations
+      try {
+        const response = await api.post('/calculate-gpx/', {
+          track_points: parsedTrack.value
+        });
+        calculatedMetrics.value = response.data;
+        parsingStatus.value = `✅ ${parsedTrack.value.length} Punkte geparst und berechnet.`;
+      } catch (calcError) {
+        console.error('Calculation error:', calcError);
+        parsingStatus.value = `✅ ${parsedTrack.value.length} Punkte geparst. (Berechnung fehlgeschlagen)`;
+        calculatedMetrics.value = null;
+      }
     } catch (err) {
       parsingStatus.value = `❌ Fehler: ${err.message}`;
       parsedTrack.value = null;
+      calculatedMetrics.value = null;
     }
   };
   reader.readAsText(file);
@@ -220,6 +302,12 @@ const getDurationLabel = () => {
     default:
       return 'Dauer (HH:MM)';
   }
+};
+
+const formatDurationForDisplay = (durationString) => {
+  if (!durationString) return '';
+  // Duration comes as HH:MM:SS from backend, we want to display as HH:MM
+  return durationString.substring(0, 5);
 };
 
 const handleSubmit = async () => {
@@ -260,6 +348,7 @@ const handleSubmit = async () => {
       payload.manual_duration = durationToSend;
       payload.manual_length_km = stage.value.manual_length_km || null;
       payload.manual_elevation_gain = stage.value.manual_elevation_gain || null;
+      payload.manual_elevation_loss = stage.value.manual_elevation_loss || null;
       
       if (parsedTrack.value) {
         payload.track_points = parsedTrack.value;
@@ -292,4 +381,63 @@ button:disabled { background-color: #ccc; cursor: not-allowed; }
 select { padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; background: white; }
 .error { color: red; }
 .parsing-status { margin-top: 0.5rem; font-style: italic; }
+
+/* GPX Preview Styles */
+.gpx-preview {
+  border: 2px solid #42b983;
+  background-color: rgba(66, 185, 131, 0.05);
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+.gpx-preview h4 {
+  margin: 0 0 0.5rem 0;
+  color: #42b983;
+  font-size: 1rem;
+}
+.preview-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+.preview-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+.preview-stat .value {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #2c3e50;
+}
+.preview-stat label {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin: 0;
+  text-align: center;
+}
+.preview-note {
+  margin: 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(66, 185, 131, 0.3);
+}
+.preview-note small {
+  color: #6c757d;
+}
+
+/* Existing GPX Data Styles */
+.existing-gpx-data {
+  border: 2px solid #007bff;
+  background-color: rgba(0, 123, 255, 0.05);
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+.existing-gpx-data h4 {
+  margin: 0 0 0.5rem 0;
+  color: #007bff;
+  font-size: 1rem;
+}
 </style>

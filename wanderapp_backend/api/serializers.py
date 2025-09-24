@@ -74,7 +74,7 @@ class StageSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'date', 'description', 'trip', 'creator', 'participants', 'participants_ids',
             'activity_type',
-            'manual_duration', 'manual_length_km', 'manual_elevation_gain',
+            'manual_duration', 'manual_length_km', 'manual_elevation_gain', 'manual_elevation_loss',
             'calculated_length_km', 'calculated_elevation_gain', 'calculated_elevation_loss', 'calculated_duration',
             'external_link', 'track', 'track_points', 'comments', 'photos',
             # Surf-specific fields
