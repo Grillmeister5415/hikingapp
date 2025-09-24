@@ -181,7 +181,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
-import { currentUser } from '../store';
+import { currentUser, setCurrentTab } from '../store';
 import MultiSelectDropdown from './MultiSelectDropdown.vue';
 import AdvancedSearch from './AdvancedSearch.vue';
 import HikingAdvancedSearch from './HikingAdvancedSearch.vue';
@@ -358,6 +358,7 @@ const setActiveCategory = (category) => {
   } else {
     // Fallback: if we're already on the correct route, refresh manually
     activeCategory.value = category;
+    setCurrentTab(category);
     currentPage.value = 1;
     fetchTrips();
   }
@@ -395,6 +396,7 @@ watch(route, (newRoute) => {
   const newCategory = getCategoryFromRoute(newRoute.path);
   if (newCategory !== activeCategory.value) {
     activeCategory.value = newCategory;
+    setCurrentTab(newCategory);
     currentPage.value = 1;
     fetchTrips();
   }

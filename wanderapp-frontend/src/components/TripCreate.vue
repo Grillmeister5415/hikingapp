@@ -1,6 +1,6 @@
 <template>
   <div>
-    <router-link to="/">&larr; Abbrechen</router-link>
+    <router-link :to="cancelRoute">&larr; Abbrechen</router-link>
     <h1>{{ getTripTypeLabel() }} erstellen</h1>
     <form @submit.prevent="handleSubmit" class="trip-form">
       <div class="form-group">
@@ -87,13 +87,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import ParticipantSelector from './ParticipantSelector.vue';
+import { useTabAwareNavigation } from '../utils/navigation.js';
 
 const router = useRouter();
 const route = useRoute();
+const { getTripListRoute } = useTabAwareNavigation();
+
+// Computed property for cancel link
+const cancelRoute = computed(() => getTripListRoute());
 
 // Get activity type from URL query parameter, default to HIKING
 const activityType = route.query.activity_type || 'HIKING';
@@ -211,7 +216,8 @@ const handleSubmit = async () => {
     }
 
     await api.post('/trips/', payload);
-    router.push('/');
+    const tripListRoute = getTripListRoute();
+    router.push(tripListRoute);
   } catch (err) {
     error.value = 'Fehler beim Speichern des Trips: ' + (JSON.stringify(err.response?.data) || err.message);
   } finally {
