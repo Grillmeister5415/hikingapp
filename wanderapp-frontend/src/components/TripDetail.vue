@@ -3,7 +3,7 @@
     <div v-if="isLoading">Lade Trip-Details...</div>
     <div v-else-if="error" class="error-message">{{ error }}</div>
     <div v-else-if="trip">
-      <router-link to="/">&larr; Zurück zur Übersicht</router-link>
+      <router-link :to="tripListRoute">&larr; Zurück zur Übersicht</router-link>
       <div class="header">
         <h1>{{ trip.name }}</h1>
         <div class="controls">
@@ -247,9 +247,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../api';
+import { getTripListRoute } from '../utils/navigation.js';
 import HikeMap from './HikeMap.vue';
 import CommentSection from './CommentSection.vue';
 import { currentUser } from '../store';
@@ -260,6 +261,9 @@ import 'photoswipe/style.css';
 const route = useRoute();
 const trip = ref(null);
 const isLoading = ref(true);
+
+// Computed property for trip list navigation
+const tripListRoute = computed(() => getTripListRoute());
 const error = ref(null);
 let lightbox = null;
 

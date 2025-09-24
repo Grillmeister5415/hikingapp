@@ -2,7 +2,7 @@
   <div>
     <div class="header">
       <h1>Dashboard von {{ username }}</h1>
-      <router-link to="/" class="btn-back">Zurück zur Trip-Liste</router-link>
+      <router-link :to="tripListRoute" class="btn-back">Zurück zur Trip-Liste</router-link>
     </div>
 
     <!-- Category Tabs -->
@@ -297,11 +297,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../api';
+import { getTripListRoute } from '../utils/navigation.js';
 
 const route = useRoute();
+
+// Computed property for trip list navigation
+const tripListRoute = computed(() => getTripListRoute());
 const totals = ref({});
 const details = ref({});
 const hikingDetails = ref({});
