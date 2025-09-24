@@ -11,6 +11,7 @@ DB_NAME = config('DB_NAME')
 DB_USER = config('DB_USER')
 DB_PASSWORD = config('DB_PASSWORD', default='')
 SERVER_IP = config('SERVER_IP', default='127.0.0.1')
+USE_HTTPS = config('USE_HTTPS', default=False, cast=bool)
 GDAL_LIBRARY_PATH = config('GDAL_LIBRARY_PATH')
 GEOS_LIBRARY_PATH = config('GEOS_LIBRARY_PATH')
 # ------------------------------------
@@ -43,11 +44,27 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'api.User'
 
+# CORS settings - dynamically include both HTTP and HTTPS origins
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     f"http://{SERVER_IP}:8080",
 ]
+
+# Add HTTPS origins for production
+if USE_HTTPS:
+    CORS_ALLOWED_ORIGINS.extend([
+        "https://wandern.prod",
+        "https://localhost:8080",  # In case HTTPS is used in dev
+    ])
+
 CORS_ALLOW_CREDENTIALS = True
+
+# HTTPS Security settings for production
+if USE_HTTPS:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
