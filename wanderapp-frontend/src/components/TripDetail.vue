@@ -510,7 +510,8 @@ const getSurfSpotsList = () => {
 <style scoped>
 .description { white-space: pre-wrap; word-break: break-word; margin-top: 0; }
 .creator { font-size: 0.9rem; color: #6c757d; }
-.header { display: flex; justify-content: space-between; align-items: center; margin: 1rem 0; }
+.header { display: flex; justify-content: space-between; align-items: center; margin: 1rem 0; min-width: 0; }
+.header h1 { word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; hyphens: auto; min-width: 0; margin: 0; }
 .header .controls { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 .btn { display: inline-block; padding: 0.8rem 1.5rem; text-decoration: none; border-radius: 8px; font-weight: bold; }
 .btn-edit-trip { background-color: #ffc107; color: #212529; }
@@ -525,28 +526,28 @@ a { text-decoration: none; color: #0d6efd; }
 a:hover { text-decoration: underline; }
 a[href="/"] { display: inline-block; margin-bottom: 1rem; }
 .trip-summary-card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; }
-.trip-stats-detail { display: flex; justify-content: space-around; padding-bottom: 1rem; margin-bottom: 1rem; }
-.social-details { border-top: 1px solid #e0e0e0; padding-top: 1rem; font-size: 0.9rem; }
+.trip-stats-detail { display: flex; justify-content: space-around; padding-bottom: 1rem; margin-bottom: 1rem; min-width: 0; overflow: hidden; flex-wrap: wrap; gap: 0.5rem; }
+.social-details { border-top: 1px solid #e0e0e0; padding-top: 1rem; font-size: 0.9rem; min-width: 0; overflow: hidden; }
 .stat-item { text-align: center; }
-.stat-item .stat-value { font-size: 1.5rem; font-weight: 500; }
+.stat-item .stat-value { font-size: 1.5rem; font-weight: 500; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; }
 .stat-item .stat-value small { font-size: 1rem; font-weight: 400; color: #6c757d; margin-left: 0.25rem; }
 .stat-item label { font-size: 0.8rem; color: #6c757d; display: block; margin-top: -5px; }
 .stat-separator { color: #e0e0e0; font-size: 1.5rem; }
-.participants, .huts, .surf-spots { margin-bottom: 0.5rem; }
+.participants, .huts, .surf-spots { margin-bottom: 0.5rem; min-width: 0; }
 .participant-tag { background-color: #e9ecef; color: #495057; }
 .hut-tag { background-color: #d1ecf1; color: #0c5460; }
 .hut-tag:hover { background-color: #bee5eb; color: #062c33; }
 a.hut-tag { text-decoration: none; }
 .surf-spot-tag { background-color: #20b2aa; color: white; }
-.participant-tag, .hut-tag, .surf-spot-tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; margin-right: 0.5rem; margin-top: 0.25rem; }
-.stage-card { border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem; }
-.stage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.participant-tag, .hut-tag, .surf-spot-tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; margin-right: 0.5rem; margin-top: 0.25rem; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; max-width: 200px; }
+.stage-card { border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem; min-width: 0; overflow: hidden; }
+.stage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; min-width: 0; }
 .stage-controls { display: flex; align-items: center; gap: 0.5rem; }
 .btn-edit { padding: 0.4rem 0.8rem; border: 1px solid #6c757d; color: #6c757d; border-radius: 5px; font-size: 0.9rem; }
 .btn-delete { background-color: transparent; border: none; cursor: pointer; font-size: 1.2rem; }
-.stage-stats { display: flex; align-items: baseline; gap: 0.75rem; margin: 1rem 0; padding-top: 1rem; border-top: 1px solid #f0f0f0; }
-.stage-stats .stat-item { text-align: left; }
-.stage-stats .stat-item span { font-size: 1.2rem; font-weight: 500; }
+.stage-stats { display: flex; align-items: baseline; gap: 0.75rem; margin: 1rem 0; padding-top: 1rem; border-top: 1px solid #f0f0f0; min-width: 0; overflow: hidden; }
+.stage-stats .stat-item { text-align: left; min-width: 0; flex-shrink: 1; }
+.stage-stats .stat-item span { font-size: 1.2rem; font-weight: 500; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; }
 .stage-stats .stat-item span small { font-size: 0.8rem; }
 .no-stages, .no-track { margin-top: 2rem; padding: 2rem; background-color: #f8f9fa; border-radius: 8px; text-align: center; color: #6c757d; }
 .photo-section { margin-top: 1.5rem; border-top: 1px solid #f0f0f0; padding-top: 1.5rem; }
@@ -563,15 +564,24 @@ a.hut-tag { text-decoration: none; }
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .title-content {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  flex: 1;
 }
 
 .title-content h3 {
   margin-bottom: 0.25rem;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  margin-top: 0;
 }
 
 .stage-date {
@@ -655,6 +665,26 @@ a.hut-tag { text-decoration: none; }
     width: 100%;
   }
 
+  /* Enhanced word-breaking for mobile */
+  .header h1 {
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+
+  .title-content h3 {
+    font-size: 1.2rem;
+    line-height: 1.3;
+  }
+
+  .stage-card {
+    padding: 1rem;
+  }
+
+  .participant-tag, .hut-tag, .surf-spot-tag {
+    max-width: 120px;
+    font-size: 0.75rem;
+  }
+
   /* Stats section: wrap nicely */
   .trip-stats {
     display: flex;
@@ -665,15 +695,22 @@ a.hut-tag { text-decoration: none; }
   .trip-stats > div {
     min-width: 45%;           /* 2 columns on small screens */
   }
-  
+
   /* Stage stats: keep on one line but adjust spacing */
   .stage-stats {
     gap: 0.5rem;
     font-size: 0.9rem;
+    flex-wrap: wrap;
   }
-  
+
   .stage-stats .stat-item span {
     font-size: 1rem;
+  }
+
+  /* Better description handling */
+  .description {
+    font-size: 0.9rem;
+    line-height: 1.4;
   }
 }
 

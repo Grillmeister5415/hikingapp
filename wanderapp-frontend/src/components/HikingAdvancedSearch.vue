@@ -120,7 +120,7 @@ const clearFilters = () => {
 
 <style scoped>
 .hiking-advanced-search {
-  background: #f8f9fa;
+  background-color: #f8f9fa;
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -133,32 +133,57 @@ const clearFilters = () => {
   margin-bottom: 1rem;
 }
 
+@media (min-width: 1200px) {
+  .filter-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 .filter-group {
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
 }
 
 .filter-group label {
-  font-weight: 600;
-  margin-bottom: 0.25rem;
+  font-weight: 500;
   color: #2c3e50;
-}
-
-.filter-input {
-  padding: 0.5rem;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
   font-size: 0.9rem;
 }
 
+.filter-input {
+  padding: 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #ced4da;
+  font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-height: 44px;
+  background-color: white;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #42b983;
+  box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.1);
+}
+
 .filter-input.small {
-  width: 80px;
+  flex: 1;
+  min-width: 70px;
 }
 
 .range-inputs {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.range-inputs span {
+  color: #6c757d;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .filter-actions {
@@ -168,44 +193,135 @@ const clearFilters = () => {
 }
 
 .btn {
-  padding: 0.5rem 1rem;
+  background-color: #6c757d;
+  color: white;
   border: none;
-  border-radius: 4px;
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
   cursor: pointer;
+  font-size: 0.9rem;
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn:focus {
+  outline: 2px solid #42b983;
+  outline-offset: 2px;
+}
+
+.btn:active {
+  transform: translateY(1px);
 }
 
 .btn-primary {
-  background: #28a745;
-  color: white;
+  background-color: #42b983;
+  font-weight: 600;
 }
 
 .btn-primary:hover {
-  background: #218838;
+  background-color: #369870;
 }
 
 .btn-secondary {
-  background: #6c757d;
-  color: white;
+  background-color: #6c757d;
 }
 
 .btn-secondary:hover {
-  background: #5a6268;
+  background-color: #5a6268;
 }
 
 @media (max-width: 768px) {
+  .hiking-advanced-search {
+    padding: 0.75rem;
+    gap: 0.5rem;
+    margin: 0 0.5rem 1rem 0.5rem;
+  }
+
   .filter-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .filter-group {
+    gap: 0.25rem;
+  }
+
+  .filter-group label {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+
+  .filter-input {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
   }
 
   .range-inputs {
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.5rem;
+    align-items: center;
   }
 
-  .filter-input.small {
+  .range-inputs input {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .range-inputs span {
+    text-align: center;
+    font-size: 0.85rem;
+  }
+
+  .filter-actions {
+    margin-top: 0.5rem;
+  }
+
+  .btn {
+    padding: 0.8rem 1rem;
+    font-size: 0.95rem;
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hiking-advanced-search {
+    padding: 0.75rem;
+    margin: 0 0.5rem 1rem 0.5rem;
+  }
+
+  .filter-grid {
+    gap: 0.5rem;
+  }
+
+  .range-inputs {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .range-inputs span {
+    text-align: left;
+    align-self: start;
+    font-size: 0.8rem;
+    margin-bottom: -0.25rem;
+  }
+
+  .filter-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .btn {
     width: 100%;
+    padding: 0.8rem;
+    font-size: 0.95rem;
+    font-weight: 600;
   }
 }
 </style>

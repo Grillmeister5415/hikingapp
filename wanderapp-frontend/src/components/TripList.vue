@@ -686,11 +686,12 @@ const getCountryWithFlag = (trip) => {
 .trip-list { list-style: none; padding: 0; }
 .trip-card { display: flex; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: box-shadow 0.2s ease-in-out; position: relative; }
 .trip-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-.card-content { padding: 1.5rem; width: 100%; padding-right: 2.5rem; }
-.trip-info h2 { margin: 0 0 0.25rem 0; }
+.card-content { padding: 1.5rem; width: 100%; padding-right: 2.5rem; min-width: 0; overflow: hidden; }
+.trip-info { min-width: 0; overflow: hidden; }
+.trip-info h2 { margin: 0 0 0.25rem 0; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; hyphens: auto; }
 .trip-link { text-decoration: none; color: inherit; }
 .trip-link:hover h2 { color: #0d6efd; }
-.meta-info { display: flex; align-items: center; gap: 0.5rem; color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.meta-info { display: flex; align-items: center; gap: 0.5rem; color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem; flex-wrap: wrap; min-width: 0; }
 .user-link { color: #0d6efd; text-decoration: none; font-weight: 500; }
 .user-link:hover { text-decoration: underline; }
 .trip-stats { display: flex; align-items: baseline; gap: 1rem; padding: 1rem 0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0; }
@@ -699,9 +700,9 @@ const getCountryWithFlag = (trip) => {
 .stat-value small { font-size: 0.9rem; font-weight: 400; color: #6c757d; margin-left: 0.25rem; }
 .stat-item label { font-size: 0.8rem; color: #6c757d; display: block; margin-top: -5px; }
 .stat-separator { color: #e0e0e0; font-size: 1.5rem; }
-.tags-container { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; }
+.tags-container { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; min-width: 0; }
 .participants, .huts, .country { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-.participant-tag, .hut-tag, .country-tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; margin-right: 0.5rem; margin-top: 0.25rem; }
+.participant-tag, .hut-tag, .country-tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; margin-right: 0.5rem; margin-top: 0.25rem; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; max-width: 200px; }
 .participant-tag { background-color: #e9ecef; color: #495057; }
 .hut-tag { background-color: #d1ecf1; color: #0c5460; text-decoration: none; }
 .country-tag { background-color: #20b2aa; color: white; font-weight: 500; }
@@ -855,9 +856,25 @@ const getCountryWithFlag = (trip) => {
   .trip-stats {
     gap: 0.5rem;
   }
-  
+
   .stat-value {
     font-size: 1.2rem;
+  }
+
+  /* Enhanced word-breaking for mobile */
+  .trip-info h2 {
+    font-size: 1.3rem;
+    line-height: 1.3;
+  }
+
+  .card-content {
+    padding: 1rem;
+    padding-right: 2rem;
+  }
+
+  .participant-tag, .hut-tag, .country-tag {
+    max-width: 150px;
+    font-size: 0.8rem;
   }
 }
 </style>
