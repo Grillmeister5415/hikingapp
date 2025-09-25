@@ -195,7 +195,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import gpxParser from 'gpxparser';
 import api from '../api';
@@ -242,6 +242,13 @@ onMounted(async () => {
     error.value = "Fehler beim Laden der Etappe: " + err.message;
   } finally {
     isLoading.value = false;
+  }
+});
+
+// Update document title when stage data loads
+watch(stage, (newStage) => {
+  if (newStage && newStage.name) {
+    document.title = `Edit: ${newStage.name} - WanderApp`;
   }
 });
 

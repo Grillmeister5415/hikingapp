@@ -90,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../api';
 import ParticipantSelector from './ParticipantSelector.vue';
@@ -149,6 +149,13 @@ onMounted(async () => {
     error.value = "Fehler beim Laden der Trip-Daten.";
   } finally {
     isLoading.value = false;
+  }
+});
+
+// Update document title when trip data loads
+watch(trip, (newTrip) => {
+  if (newTrip && newTrip.name) {
+    document.title = `Edit: ${newTrip.name} - WanderApp`;
   }
 });
 

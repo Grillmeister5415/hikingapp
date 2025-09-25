@@ -154,7 +154,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 
@@ -190,6 +190,13 @@ onMounted(async () => {
     console.error("Error loading stage data:", err);
     error.value = "Konnte Surf Session Daten nicht laden.";
     isLoading.value = false;
+  }
+});
+
+// Update document title when stage data loads
+watch(stage, (newStage) => {
+  if (newStage && newStage.name) {
+    document.title = `Edit: ${newStage.name} - WanderApp`;
   }
 });
 

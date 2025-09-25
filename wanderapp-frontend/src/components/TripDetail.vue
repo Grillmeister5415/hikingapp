@@ -254,7 +254,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../api';
 import { getTripListRoute } from '../utils/navigation.js';
@@ -337,6 +337,13 @@ const handleDeletePhoto = async (photoId) => {
 };
 
 onMounted(fetchTripData);
+
+// Update document title when trip data loads
+watch(trip, (newTrip) => {
+  if (newTrip && newTrip.name) {
+    document.title = `${newTrip.name} - WanderApp`;
+  }
+});
 
 const formatLink = (url) => {
   try {

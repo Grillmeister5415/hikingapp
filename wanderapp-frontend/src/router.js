@@ -15,63 +15,75 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: LoginView,
+    meta: { title: 'Login - WanderApp' }
   },
   {
     path: '/',
     name: 'TripList',
     component: TripList,
+    meta: { title: 'All Trips - WanderApp' }
   },
   {
     path: '/hiking',
     name: 'HikingTrips',
     component: TripList,
-    props: { defaultCategory: 'HIKING' }
+    props: { defaultCategory: 'HIKING' },
+    meta: { title: 'Hiking Trips - WanderApp' }
   },
   {
     path: '/surfing',
     name: 'SurfingTrips',
     component: TripList,
-    props: { defaultCategory: 'SURFING' }
+    props: { defaultCategory: 'SURFING' },
+    meta: { title: 'Surfing Trips - WanderApp' }
   },
   {
     path: '/dashboard/:id?', // id is optional
     name: 'Dashboard',
     component: UserDashboard,
+    meta: { title: 'Dashboard - WanderApp' }
   },
   {
     path: '/trip/new',
     name: 'TripCreate',
     component: TripCreate,
+    meta: { title: 'New Trip - WanderApp' }
   },
   {
     path: '/trip/:id',
     name: 'TripDetail',
     component: TripDetail,
+    meta: { title: 'Trip Details - WanderApp' }
   },
   {
     path: '/trip/:id/edit',
     name: 'TripEdit',
     component: TripEdit,
+    meta: { title: 'Edit Trip - WanderApp' }
   },
   {
     path: '/trip/:tripId/add-stage',
     name: 'StageCreate',
     component: StageCreate,
+    meta: { title: 'Add Stage - WanderApp' }
   },
   {
     path: '/trip/:tripId/add-surf-stage',
     name: 'SurfStageCreate',
     component: SurfStageCreate,
+    meta: { title: 'Add Surf Stage - WanderApp' }
   },
   {
     path: '/stage/:id/edit',
     name: 'StageEdit',
     component: StageEdit,
+    meta: { title: 'Edit Stage - WanderApp' }
   },
   {
     path: '/surf-stage/:id/edit',
     name: 'SurfStageEdit',
     component: SurfStageEdit,
+    meta: { title: 'Edit Surf Stage - WanderApp' }
   },
 ];
 
@@ -107,6 +119,11 @@ router.beforeEach(async (to, from, next) => {
   }
 
   next();
+});
+
+// Update document title based on route meta
+router.afterEach((to) => {
+  document.title = to.meta.title || 'WanderApp';
 });
 
 export default router;
