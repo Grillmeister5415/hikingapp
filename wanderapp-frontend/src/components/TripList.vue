@@ -66,10 +66,9 @@
         {{ showAdvancedFilters ? 'Erweiterte Filter ausblenden' : 'Erweiterte Filter' }}
       </button>
       <button @click="clearFilters" class="btn-clear">Filter zurücksetzen</button>
-      <p class="results-count">{{ totalTrips }} Trip(s) gefunden.</p>
     </div>
 
-    
+
     <div class="pagination-controls">
       <div class="page-size-selector">
         <label for="pageSize">Pro Seite:</label>
@@ -79,11 +78,7 @@
           <option value="50">50</option>
         </select>
       </div>
-      <div class="page-navigation">
-        <button @click="prevPage" :disabled="!previousPageUrl || isLoading">‹</button>
-        <span>Seite {{ currentPage }}</span>
-        <button @click="nextPage" :disabled="!nextPageUrl || isLoading">›</button>
-      </div>
+      <p class="results-count">{{ totalTrips }} Trip(s) gefunden.</p>
     </div>
 
     <div v-if="isLoading">Lade Trips...</div>
@@ -173,12 +168,24 @@
           <button v-if="currentUser && currentUser.id === trip.creator?.id" @click.stop="handleDeleteTrip(trip.id)" class="btn-delete" title="Trip löschen">🗑️</button>
         </li>
       </ul>
+
+      <!-- Infinite scroll loading states -->
+      <div class="infinite-scroll-status">
+        <div v-if="isLoadingMore" class="loading-more">
+          Lade weitere Trips...
+        </div>
+        <div v-else-if="!hasMoreTrips && allTrips.length > 0" class="no-more-trips">
+          Alle Trips wurden geladen
+        </div>
+        <!-- Sentinel element for intersection observer -->
+        <div ref="sentinel" class="scroll-sentinel"></div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import { currentUser, setCurrentTab } from '../store';
@@ -208,6 +215,13 @@ const pageSize = ref('10'); // Default page size
 const nextPageUrl = ref(null);
 const previousPageUrl = ref(null);
 
+// --- INFINITE SCROLL STATE ---
+const allTrips = ref([]); // Accumulates all loaded trips
+const isLoadingMore = ref(false); // Loading additional trips
+const hasMoreTrips = ref(true); // Whether more trips are available
+const observer = ref(null); // Intersection observer instance
+const sentinel = ref(null); // Template ref for sentinel element
+
 // Category management
 const activeCategory = ref(props.defaultCategory || 'HIKING');
 const categories = ref([
@@ -224,10 +238,16 @@ const filters = ref({
 
 const showAdvancedFilters = ref(false);
 
-const fetchTrips = async () => {
+const fetchTrips = async (isInfiniteScroll = false) => {
   try {
-    isLoading.value = true;
+    // Set appropriate loading state
+    if (isInfiniteScroll) {
+      isLoadingMore.value = true;
+    } else {
+      isLoading.value = true;
+    }
     error.value = null;
+
     const params = new URLSearchParams();
 
     // --- Add filter parameters ---
@@ -237,7 +257,7 @@ const fetchTrips = async () => {
     }
     if (filters.value.from_date) params.append('from_date', filters.value.from_date);
     if (filters.value.to_date) params.append('to_date', filters.value.to_date);
-    
+
     // --- Add activity type filter based on active category ---
     params.append('activity_type', activeCategory.value);
 
@@ -247,17 +267,32 @@ const fetchTrips = async () => {
 
     const response = await api.get(`/trips/`, { params });
 
-    // --- CORRECTLY HANDLE PAGINATED RESPONSE ---
-    trips.value = response.data.results;
+    // --- HANDLE RESPONSE: APPEND FOR INFINITE SCROLL, REPLACE FOR INITIAL/FILTER LOADS ---
+    if (isInfiniteScroll) {
+      // Append new results to existing trips
+      allTrips.value.push(...response.data.results);
+    } else {
+      // Replace trips (initial load or filter change)
+      allTrips.value = response.data.results;
+    }
+
+    // Keep original trips ref for backward compatibility
+    trips.value = allTrips.value;
+
     totalTrips.value = response.data.count;
     nextPageUrl.value = response.data.next;
     previousPageUrl.value = response.data.previous;
+    hasMoreTrips.value = !!response.data.next; // Has more trips if next URL exists
 
   } catch (err) {
     console.error("API Error:", err.response?.data || err.message);
     error.value = "Fehler beim Laden der Trips. Bitte versuchen Sie es später erneut.";
   } finally {
-    isLoading.value = false;
+    if (isInfiniteScroll) {
+      isLoadingMore.value = false;
+    } else {
+      isLoading.value = false;
+    }
   }
 };
 
@@ -268,6 +303,52 @@ const fetchUsers = async () => {
     allUsers.value = response.data;
   } catch (err) {
     console.error("Fehler beim Laden der Benutzerliste.");
+  }
+};
+
+// --- INFINITE SCROLL FUNCTIONS ---
+const loadMoreTrips = async () => {
+  // Prevent multiple simultaneous loads
+  if (isLoadingMore.value || !hasMoreTrips.value) return;
+
+  currentPage.value++;
+  await fetchTrips(true); // true = infinite scroll mode
+};
+
+const setupIntersectionObserver = () => {
+  // Create observer to watch sentinel element
+  observer.value = new IntersectionObserver(
+    (entries) => {
+      const [entry] = entries;
+      console.log('Intersection observed:', {
+        isIntersecting: entry.isIntersecting,
+        hasMoreTrips: hasMoreTrips.value,
+        isLoadingMore: isLoadingMore.value,
+        currentPage: currentPage.value
+      });
+
+      if (entry.isIntersecting && hasMoreTrips.value && !isLoadingMore.value) {
+        console.log('Loading more trips...');
+        loadMoreTrips();
+      }
+    },
+    {
+      rootMargin: '100px', // Start loading 100px before reaching bottom
+      threshold: 0.1,
+    }
+  );
+};
+
+const observeSentinel = (element) => {
+  if (observer.value && element) {
+    observer.value.observe(element);
+  }
+};
+
+const cleanupIntersectionObserver = () => {
+  if (observer.value) {
+    observer.value.disconnect();
+    observer.value = null;
   }
 };
 
@@ -328,13 +409,19 @@ const fetchTripsWithAdvancedParams = async (params) => {
     isLoading.value = true;
     error.value = null;
     currentPage.value = 1;
+    allTrips.value = []; // Clear accumulated trips for new search
+    hasMoreTrips.value = true; // Reset has more trips flag
 
     const response = await api.get(`/trips/`, { params });
 
-    trips.value = response.data.results;
+    // Use the same logic as fetchTrips for consistency
+    allTrips.value = response.data.results;
+    trips.value = allTrips.value;
+
     totalTrips.value = response.data.count;
     nextPageUrl.value = response.data.next;
     previousPageUrl.value = response.data.previous;
+    hasMoreTrips.value = !!response.data.next;
 
   } catch (err) {
     console.error("Advanced Search API Error:", err.response?.data || err.message);
@@ -360,6 +447,8 @@ const setActiveCategory = (category) => {
     activeCategory.value = category;
     setCurrentTab(category);
     currentPage.value = 1;
+    allTrips.value = []; // Clear accumulated trips for new category
+    hasMoreTrips.value = true; // Reset has more trips flag
     fetchTrips();
   }
 };
@@ -373,10 +462,19 @@ const getAddTripLabel = () => {
   return `${category?.icon} ${category?.label} hinzufügen`;
 };
 
-// --- Watcher resets to page 1 on any filter change ---
-const onFilterChange = () => {
+// --- Watcher resets to page 1 and clears accumulated trips on any filter change ---
+const onFilterChange = async () => {
   currentPage.value = 1;
-  fetchTrips();
+  allTrips.value = []; // Clear accumulated trips
+  hasMoreTrips.value = true; // Reset has more trips flag
+  await fetchTrips(); // This will be a fresh load, not infinite scroll
+
+  // Re-observe sentinel after content changes
+  await nextTick();
+  if (sentinel.value && observer.value) {
+    observer.value.disconnect();
+    observeSentinel(sentinel.value);
+  }
 };
 
 watch(filters, onFilterChange, { deep: true });
@@ -392,19 +490,39 @@ const getCategoryFromRoute = (routePath) => {
 };
 
 // Watch for route changes to update category and refresh data
-watch(route, (newRoute) => {
+watch(route, async (newRoute) => {
   const newCategory = getCategoryFromRoute(newRoute.path);
   if (newCategory !== activeCategory.value) {
     activeCategory.value = newCategory;
     setCurrentTab(newCategory);
     currentPage.value = 1;
-    fetchTrips();
+    allTrips.value = []; // Clear accumulated trips for new category
+    hasMoreTrips.value = true; // Reset has more trips flag
+    await fetchTrips();
+
+    // Re-observe sentinel after content changes
+    await nextTick();
+    if (sentinel.value && observer.value) {
+      observer.value.disconnect();
+      observeSentinel(sentinel.value);
+    }
   }
 }, { immediate: true });
 
-onMounted(() => {
-  fetchTrips();
+onMounted(async () => {
+  await fetchTrips();
   fetchUsers();
+  setupIntersectionObserver();
+
+  // Start observing the sentinel element after DOM is fully rendered and trips are loaded
+  await nextTick();
+  if (sentinel.value && observer.value) {
+    observeSentinel(sentinel.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  cleanupIntersectionObserver();
 });
 
 const clearFilters = () => {
@@ -482,20 +600,6 @@ const logout = () => {
   });
 };
 
-// --- NEW: Pagination methods ---
-const nextPage = () => {
-  if (nextPageUrl.value) {
-    currentPage.value++;
-    fetchTrips();
-  }
-};
-
-const prevPage = () => {
-  if (previousPageUrl.value) {
-    currentPage.value--;
-    fetchTrips();
-  }
-};
 
 // Surf-specific helper functions
 const getSurfStageCount = (trip) => {
@@ -620,6 +724,31 @@ const getCountryWithFlag = (trip) => {
 .filter-bar .results-count { margin-left: auto; font-weight: 500; }
 .results-summary { padding: 1rem; background-color: #f8f9fa; border-radius: 8px; margin-bottom: 1rem; text-align: center; }
 .results-summary .results-count { text-align: center; font-weight: 500; color: #20b2aa; }
+
+/* Infinite scroll styles */
+.infinite-scroll-status {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.loading-more {
+  color: #6c757d;
+  font-style: italic;
+  padding: 1rem;
+}
+
+.no-more-trips {
+  color: #6c757d;
+  font-size: 0.9rem;
+  padding: 1rem;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 1rem;
+}
+
+.scroll-sentinel {
+  height: 1px;
+  width: 100%;
+}
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
