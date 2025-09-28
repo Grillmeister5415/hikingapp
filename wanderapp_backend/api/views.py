@@ -129,7 +129,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
         instance.thumbnail_webp.delete(save=False)
         instance.delete()
 
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
+class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('username')
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
