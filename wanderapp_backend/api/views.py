@@ -129,18 +129,30 @@ class PhotoViewSet(viewsets.ModelViewSet):
         instance.thumbnail_webp.delete(save=False)
         instance.delete()
 
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
+class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('username')
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_permissions(self):
-        """
-        Allow POST for specific actions like quick_create
-        """
-        if self.action == 'quick_create':
-            return [IsAuthenticated()]
-        return super().get_permissions()
+    def create(self, request, *args, **kwargs):
+        """Disable standard user creation"""
+        return Response({'error': 'Use quick_create endpoint instead'},
+                       status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def update(self, request, *args, **kwargs):
+        """Disable user updates"""
+        return Response({'error': 'User updates not allowed'},
+                       status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Disable partial user updates"""
+        return Response({'error': 'User updates not allowed'},
+                       status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def destroy(self, request, *args, **kwargs):
+        """Disable user deletion"""
+        return Response({'error': 'User deletion not allowed'},
+                       status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     @action(detail=False, methods=['get'])
     def me(self, request):
