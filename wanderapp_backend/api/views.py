@@ -129,10 +129,18 @@ class PhotoViewSet(viewsets.ModelViewSet):
         instance.thumbnail_webp.delete(save=False)
         instance.delete()
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all().order_by('username')
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        """
+        Allow POST for specific actions like quick_create
+        """
+        if self.action == 'quick_create':
+            return [IsAuthenticated()]
+        return super().get_permissions()
 
     @action(detail=False, methods=['get'])
     def me(self, request):
