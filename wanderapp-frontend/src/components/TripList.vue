@@ -3,11 +3,11 @@
     <div class="header">
       <h1>Meine Trips</h1>
       <div class="controls">
-        <router-link to="/dashboard" class="btn btn-dashboard">Dashboard</router-link>
-        <router-link :to="getAddTripRoute()" class="btn btn-new-trip">
+        <BaseButton tag="router-link" to="/dashboard" variant="secondary">Dashboard</BaseButton>
+        <BaseButton tag="router-link" :to="getAddTripRoute()" variant="primary">
           {{ getAddTripLabel() }}
-        </router-link>
-        <button @click="logout" class="btn btn-logout">Logout</button>
+        </BaseButton>
+        <BaseButton @click="logout" variant="secondary">Logout</BaseButton>
       </div>
     </div>
 
@@ -57,15 +57,15 @@
         <label>Bis:</label>
         <input type="date" v-model="filters.to_date" />
       </div>
-      <button
+      <BaseButton
         v-if="activeCategory === 'SURFING' || activeCategory === 'HIKING'"
         @click="showAdvancedFilters = !showAdvancedFilters"
-        class="btn-clear btn-advanced"
-        :class="{ active: showAdvancedFilters }"
+        :variant="showAdvancedFilters ? 'primary' : 'ghost'"
+        size="small"
       >
-        {{ showAdvancedFilters ? 'Erweiterte Filter ausblenden' : 'Erweiterte Filter' }}
-      </button>
-      <button @click="clearFilters" class="btn-clear">Filter zurücksetzen</button>
+        {{ showAdvancedFilters ? 'Filter ausblenden' : 'Erweiterte Filter' }}
+      </BaseButton>
+      <BaseButton v-if="hasActiveFilters" @click="clearFilters" variant="ghost" size="small">Filter zurücksetzen</BaseButton>
     </div>
 
 
@@ -113,6 +113,7 @@
               <span class="stat-separator">|</span>
               <div class="stat-item">
                 <span class="stat-value">{{ formatNumber(trip.total_distance) }} <small>km</small></span>
+                <label>Distanz</label>
               </div>
               <span class="stat-separator">|</span>
               <div class="stat-item">
@@ -129,38 +130,43 @@
             <!-- Surf Stats -->
             <div v-if="trip.activity_type === 'SURFING'" class="trip-stats surf-stats">
               <div class="stat-item">
-                <span class="stat-value">{{ getSurfStageCount(trip) }}</span>
-                <label>Sessions</label>
+                <span class="stat-value">{{ formatDuration(trip.total_surf_time) }}</span>
+                <label>Total Surftime</label>
               </div>
-              <span class="stat-separator" v-if="trip.country_display">|</span>
-              <div class="stat-item" v-if="trip.country_display">
-                <span class="stat-value">{{ getCountryWithFlag(trip) }}</span>
-                <label>Land</label>
+              <span class="stat-separator">|</span>
+              <div class="stat-item">
+                <span class="stat-value">{{ formatNumber(trip.total_wave_count) }}</span>
+                <label>Total Wavecount</label>
+              </div>
+              <span class="stat-separator">|</span>
+              <div class="stat-item">
+                <span class="stat-value">{{ formatNumber(trip.unique_surf_spots_count) }}</span>
+                <label>Spots Surfed</label>
               </div>
             </div>
 
             <div class="tags-container">
               <div class="participants" v-if="trip.participants?.length > 0">
                 <strong>Teilnehmer:</strong>
-                <router-link v-for="p in trip.participants" :key="p.id" :to="`/dashboard/${p.id}`" @click.stop class="participant-tag user-link">
-                  {{ p.username }}
+                <router-link v-for="p in trip.participants" :key="p.id" :to="`/dashboard/${p.id}`" @click.stop class="user-link">
+                  <BaseBadge variant="default" size="medium">{{ p.username }}</BaseBadge>
                 </router-link>
               </div>
               <!-- Show huts for hiking trips -->
               <div class="huts" v-if="trip.activity_type === 'HIKING' && trip.huts?.length > 0">
-                <strong>🏔️ Hütten:</strong>
+                <strong>Hütten:</strong>
                 <template v-for="hut in trip.huts" :key="hut.id">
-                  <a v-if="hut.link" :href="hut.link" target="_blank" @click.stop class="hut-tag">
-                    {{ hut.name }} 🔗
+                  <a v-if="hut.link" :href="hut.link" target="_blank" @click.stop>
+                    <BaseBadge variant="info" size="medium">{{ hut.name }} 🔗</BaseBadge>
                   </a>
-                  <span v-else class="hut-tag">{{ hut.name }}</span>
+                  <BaseBadge v-else variant="info" size="medium">{{ hut.name }}</BaseBadge>
                 </template>
               </div>
-              
+
               <!-- Show country for surf trips -->
               <div class="country" v-if="trip.activity_type === 'SURFING' && trip.country_display">
                 <strong>🌍 Land:</strong>
-                <span class="country-tag">{{ getCountryWithFlag(trip) }}</span>
+                <BaseBadge variant="surfing" size="medium">{{ getCountryWithFlag(trip) }}</BaseBadge>
               </div>
             </div>
           </div>
@@ -185,13 +191,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import { currentUser, setCurrentTab } from '../store';
 import MultiSelectDropdown from './MultiSelectDropdown.vue';
 import AdvancedSearch from './AdvancedSearch.vue';
 import HikingAdvancedSearch from './HikingAdvancedSearch.vue';
+import BaseButton from './base/BaseButton.vue';
+import BaseBadge from './base/BaseBadge.vue';
 
 // Accept props for default category
 const props = defineProps({
@@ -458,8 +466,14 @@ const getAddTripRoute = () => {
 };
 
 const getAddTripLabel = () => {
-  const category = categories.value.find(cat => cat.value === activeCategory.value);
-  return `${category?.icon} ${category?.label} hinzufügen`;
+  switch (activeCategory.value) {
+    case 'HIKING':
+      return 'Add Hike';
+    case 'SURFING':
+      return 'Add Surf';
+    default:
+      return 'Add Trip';
+  }
 };
 
 // --- Watcher resets to page 1 and clears accumulated trips on any filter change ---
@@ -534,6 +548,16 @@ const clearFilters = () => {
   };
 };
 
+// Computed property to check if any filters are active
+const hasActiveFilters = computed(() => {
+  return (
+    filters.value.search !== '' ||
+    filters.value.participants.length > 0 ||
+    filters.value.from_date !== '' ||
+    filters.value.to_date !== ''
+  );
+});
+
 const handleDeleteTrip = async (tripId) => {
   if (window.confirm("Sind Sie sicher, dass Sie diesen Trip endgültig löschen möchten?")) {
     try {
@@ -547,8 +571,11 @@ const handleDeleteTrip = async (tripId) => {
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
-  const options = { year: 'numeric', month: 'long', day: 'numeric' };
-  return new Date(dateString).toLocaleDateString('de-DE', options);
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
 };
 
 const formatNumber = (num) => {
@@ -602,10 +629,6 @@ const logout = () => {
 
 
 // Surf-specific helper functions
-const getSurfStageCount = (trip) => {
-  return trip.surf_session_count || trip.stage_count || '0';
-};
-
 const getCountryWithFlag = (trip) => {
   if (!trip.country || !trip.country_display) return '';
   
@@ -626,105 +649,312 @@ const getCountryWithFlag = (trip) => {
 </script>
 
 <style scoped>
-/* Your original CSS from GitHub with additions for pagination */
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem; }
+/* TripList - Migrated to Design System */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+  gap: var(--space-6);
+}
 
 /* Category tabs styling */
 .category-tabs {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  padding: 0.5rem;
-  background-color: #f8f9fa;
-  border-radius: 12px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  padding: var(--space-2);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
 }
 
 .category-tab {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
   background-color: transparent;
   border: 2px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-weight: 500;
-  color: #6c757d;
-  transition: all 0.2s ease;
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
 }
 
 .category-tab:hover {
   background-color: rgba(255, 255, 255, 0.7);
-  color: #495057;
+  color: var(--color-text-primary);
 }
 
 .category-tab.active {
-  background-color: white;
-  color: #333;
-  border-color: #0d6efd;
-  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border-color: var(--color-blue);
+  box-shadow: var(--shadow-sm);
 }
 
 .category-icon {
-  font-size: 1.2rem;
+  font-size: var(--text-lg);
 }
-.header > .controls { display: flex; gap: 1rem; flex-wrap: wrap; }
-.btn { display: inline-block; padding: 0.8rem 1.5rem; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; border: none; cursor: pointer; font-size: 0.95rem; }
-.btn-new-trip { background-color: #42b983; }
-.btn-dashboard { background-color: #0d6efd; }
-.btn-logout { background-color: #6c757d; }
-.error-message { color: red; }
-.filter-bar { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem; background-color: #f8f9fa; border-radius: 8px; margin-bottom: 1rem; align-items: center; }
-.search-input { flex-grow: 1; padding: 0.8rem 1rem; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; min-width: 200px; }
-.filter-group { display: flex; align-items: center; gap: 0.5rem; }
-.filter-group label { font-weight: 500; }
-.filter-group input[type="date"] { padding: 0.7rem; border-radius: 8px; border: 1px solid #ccc; }
-.btn-clear { background-color: #6c757d; color: white; border: none; padding: 1rem 1.5rem; border-radius: 12px; cursor: pointer; font-size: 1rem; }
-.btn-advanced { background-color: #42b983; transition: background-color 0.2s ease; }
-.btn-advanced:hover { background-color: #369870; }
-.btn-advanced.active { background-color: #28a745; }
-.trip-list { list-style: none; padding: 0; }
-.trip-card { display: flex; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: box-shadow 0.2s ease-in-out; position: relative; }
-.trip-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-.card-content { padding: 1.5rem; width: 100%; padding-right: 2.5rem; min-width: 0; overflow: hidden; }
-.trip-info { min-width: 0; overflow: hidden; }
-.trip-info h2 { margin: 0 0 0.25rem 0; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; hyphens: auto; }
-.trip-link { text-decoration: none; color: inherit; }
-.trip-link:hover h2 { color: #0d6efd; }
-.meta-info { display: flex; align-items: center; gap: 0.5rem; color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem; flex-wrap: wrap; min-width: 0; }
-.user-link { color: #0d6efd; text-decoration: none; font-weight: 500; }
-.user-link:hover { text-decoration: underline; }
-.trip-stats { display: flex; align-items: baseline; gap: 1rem; padding: 1rem 0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0; }
-.stat-item { text-align: left; }
-.stat-value { font-size: 1.5rem; font-weight: 500; color: #333; }
-.stat-value small { font-size: 0.9rem; font-weight: 400; color: #6c757d; margin-left: 0.25rem; }
-.stat-item label { font-size: 0.8rem; color: #6c757d; display: block; margin-top: -5px; }
-.stat-separator { color: #e0e0e0; font-size: 1.5rem; }
-.tags-container { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; min-width: 0; }
-.participants, .huts, .country { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-.participant-tag, .hut-tag, .country-tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; margin-right: 0.5rem; margin-top: 0.25rem; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; max-width: 200px; }
-.participant-tag { background-color: #e9ecef; color: #495057; }
-.hut-tag { background-color: #d1ecf1; color: #0c5460; text-decoration: none; }
-.country-tag { background-color: #20b2aa; color: white; font-weight: 500; }
+
+.header > .controls {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.error-message {
+  color: var(--color-error);
+}
+/* Filter bar */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  align-items: center;
+}
+
+.search-input {
+  flex-grow: 1;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-medium);
+  min-width: 200px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filter-group label {
+  font-weight: var(--font-medium);
+}
+
+.filter-group input[type="date"] {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-medium);
+  max-width: 160px;
+}
+
+/* Trip list */
+.trip-list {
+  list-style: none;
+  padding: 0;
+}
+
+.trip-card {
+  display: flex;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+  position: relative;
+}
+
+.trip-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.card-content {
+  padding: var(--space-6);
+  width: 100%;
+  padding-right: var(--space-10);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.trip-info {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.trip-info h2 {
+  margin: 0 0 var(--space-1) 0;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.trip-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.trip-link:hover h2 {
+  color: var(--color-blue);
+}
+
+.meta-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.user-link {
+  color: var(--color-blue);
+  text-decoration: none;
+  font-weight: var(--font-medium);
+}
+
+.user-link:hover {
+  text-decoration: underline;
+}
+/* Trip stats */
+.trip-stats {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.stat-item {
+  text-align: left;
+}
+
+.stat-value {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.stat-value small {
+  font-size: var(--text-sm);
+  font-weight: var(--font-normal);
+  color: var(--color-text-secondary);
+  margin-left: var(--space-1);
+}
+
+.stat-item label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  display: block;
+  margin-top: -5px;
+}
+
+.stat-separator {
+  color: var(--color-border-light);
+  font-size: var(--text-2xl);
+}
+
+/* Tags container */
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
+  min-width: 0;
+}
+
+.participants,
+.huts,
+.country {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3); /* Increased from 8px to 12px for better badge spacing */
+}
 
 /* Surf-specific styling */
 .surf-stats {
-  border-color: #20b2aa;
-}
-.surf-stats .stat-value {
-  color: #20b2aa;
+  border-color: var(--color-surfing);
 }
 
-.btn-delete { position: absolute; top: 1rem; right: 1rem; background-color: transparent; border: none; color: #aaa; cursor: pointer; font-size: 1.2rem; }
-.btn-delete:hover { color: #dc3545; }
-.pagination-controls { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; padding: 1rem; background-color: #f8f9fa; border-radius: 8px; margin-top: -1rem; margin-bottom: 2rem; }
-.page-navigation { display: flex; align-items: center; gap: 1rem; }
-.page-navigation button { padding: 0.5rem 1rem; border: 1px solid #ccc; border-radius: 4px; }
-.page-navigation button:disabled { opacity: 0.5; cursor: not-allowed; }
-.results-count { text-align: right; color: #6c757d; margin: 0; }
-.filter-bar .results-count { margin-left: auto; font-weight: 500; }
-.results-summary { padding: 1rem; background-color: #f8f9fa; border-radius: 8px; margin-bottom: 1rem; text-align: center; }
-.results-summary .results-count { text-align: center; font-weight: 500; color: #20b2aa; }
+.surf-stats .stat-value {
+  color: var(--color-surfing);
+}
+
+/* Delete button */
+.btn-delete {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background-color: transparent;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-size: var(--text-lg);
+}
+
+.btn-delete:hover {
+  color: var(--color-error);
+}
+
+/* Pagination controls */
+.pagination-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  margin-top: -var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.page-navigation {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.page-navigation button {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--radius-sm);
+}
+
+.page-navigation button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.results-count {
+  text-align: right;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.filter-bar .results-count {
+  margin-left: auto;
+  font-weight: var(--font-medium);
+}
+
+.results-summary {
+  padding: var(--space-4);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  text-align: center;
+}
+
+.results-summary .results-count {
+  text-align: center;
+  font-weight: var(--font-medium);
+  color: var(--color-surfing);
+}
 
 /* Infinite scroll styles */
 .infinite-scroll-status {
@@ -733,16 +963,16 @@ const getCountryWithFlag = (trip) => {
 }
 
 .loading-more {
-  color: #6c757d;
+  color: var(--color-text-secondary);
   font-style: italic;
   padding: 1rem;
 }
 
 .no-more-trips {
-  color: #6c757d;
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   padding: 1rem;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-border-light);
   margin-top: 1rem;
 }
 
@@ -754,17 +984,25 @@ const getCountryWithFlag = (trip) => {
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .header {
-    flex-direction: column;
+    flex-direction: column-reverse;
     align-items: stretch;
     gap: 0.75rem;
     margin: 0 0.5rem 2rem 0.5rem;
   }
-  
+
   .header > .controls {
-    justify-content: center;
-    gap: 0.5rem;
+    flex-direction: row;
+    gap: var(--space-2);
+    width: 100%;
+    flex-wrap: wrap;
   }
-  
+
+  .header > .controls > * {
+    font-size: var(--text-sm);
+    flex: 1;
+    min-width: max-content;
+  }
+
   .btn {
     padding: 0.7rem 1rem;
     font-size: 0.9rem;
@@ -777,46 +1015,60 @@ const getCountryWithFlag = (trip) => {
   }
   
   .filter-bar {
-    padding: 0.75rem;
-    gap: 0.5rem;
+    padding: var(--space-4);
+    gap: var(--space-6); /* Increased from 8px to 24px for better breathing room */
     margin: 0 0.5rem 1rem 0.5rem;
+    flex-direction: column; /* Stack all filter elements vertically */
+    align-items: stretch;
   }
-  
+
   .search-input {
     min-width: auto;
     width: 100%;
     padding: 0.6rem 0.8rem;
     font-size: 0.9rem;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0;
   }
-  
+
   .filter-group {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    flex-direction: column; /* Stack label and input vertically */
+    align-items: stretch;
+    gap: var(--space-2);
+    width: 100%;
   }
-  
-  /* Special layout for date filters to appear on same line */
+
+  /* Override special layout - stack date filters vertically on mobile */
   .filter-group:nth-of-type(3), .filter-group:nth-of-type(4) {
-    display: inline-flex;
-    width: calc(50% - 0.25rem);
+    display: flex;
+    width: 100%;
   }
-  
+
   .filter-group label {
     font-size: 0.85rem;
     margin: 0;
   }
-  
+
   .filter-group input[type="date"] {
     padding: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 16px; /* Prevent iOS auto-zoom */
+    width: 100%;
   }
-  
+
   .btn-clear {
     padding: 0.8rem 1rem;
     font-size: 0.95rem;
-    margin-top: 0.25rem;
+    margin-top: 0;
     border-radius: 10px;
+    width: 100%;
+  }
+
+  /* Override button constraints for filter buttons */
+  .filter-bar .btn {
+    max-width: none;
+    min-width: auto;
+    width: auto;
+    flex: 0 1 auto;
   }
   
   /* Mobile responsive category tabs */
@@ -829,14 +1081,31 @@ const getCountryWithFlag = (trip) => {
   .category-tab {
     flex: 1;
     justify-content: center;
-    padding: 0.6rem 0.8rem;
+    padding: 0.75rem 1rem; /* Increased for better touch targets (min 44px) */
     font-size: 0.9rem;
+    min-height: 44px; /* Ensure minimum touch target size */
   }
   
   .category-icon {
     font-size: 1rem;
   }
-  
+
+  /* Increase delete button touch targets on mobile */
+  .btn-delete {
+    font-size: var(--text-xl); /* Larger icon */
+    padding: var(--space-2); /* Add padding for larger touch area */
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Hide page size selector on mobile (desktop-oriented control) */
+  .page-size-selector {
+    display: none;
+  }
+
   .results-count {
     text-align: center !important;
     font-size: 0.85rem;
@@ -854,7 +1123,14 @@ const getCountryWithFlag = (trip) => {
   }
   
   .trip-stats {
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+
+  .stat-separator {
+    display: none;
   }
 
   .stat-value {
@@ -872,9 +1148,23 @@ const getCountryWithFlag = (trip) => {
     padding-right: 2rem;
   }
 
-  .participant-tag, .hut-tag, .country-tag {
+  /* Badge sizing and overflow handling on mobile */
+  .participants a,
+  .huts a,
+  .huts > span,
+  .country > span {
     max-width: 150px;
-    font-size: 0.8rem;
+  }
+
+  /* Ensure BaseBadge content truncates properly - use deep selector for scoped child component */
+  .participants :deep(.badge),
+  .huts :deep(.badge),
+  .country :deep(.badge) {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
   }
 }
 </style>

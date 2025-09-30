@@ -70,8 +70,8 @@
       </div>
 
       <div class="filter-actions">
-        <button @click="applyFilters" class="btn btn-primary">Apply Filters</button>
-        <button @click="clearFilters" class="btn btn-secondary">Clear All</button>
+        <BaseButton @click="applyFilters" variant="primary" size="small">Apply Filters</BaseButton>
+        <BaseButton @click="clearFilters" variant="secondary" size="small">Clear All</BaseButton>
       </div>
     </div>
   </div>
@@ -79,6 +79,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import BaseButton from './base/BaseButton.vue';
 
 const props = defineProps({
   showAdvancedFilters: {
@@ -188,50 +189,9 @@ const clearFilters = () => {
 
 .filter-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-content: flex-start;
-}
-
-.btn {
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  padding: 0.7rem 1.2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.2s;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn:focus {
-  outline: 2px solid #42b983;
-  outline-offset: 2px;
-}
-
-.btn:active {
-  transform: translateY(1px);
-}
-
-.btn-primary {
-  background-color: #42b983;
-  font-weight: 600;
-}
-
-.btn-primary:hover {
-  background-color: #369870;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-}
-
-.btn-secondary:hover {
-  background-color: #5a6268;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 768px) {
@@ -281,12 +241,6 @@ const clearFilters = () => {
   .filter-actions {
     margin-top: 0.5rem;
   }
-
-  .btn {
-    padding: 0.8rem 1rem;
-    font-size: 0.95rem;
-    border-radius: 10px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -301,27 +255,25 @@ const clearFilters = () => {
 
   .range-inputs {
     grid-template-columns: 1fr;
-    gap: 0.5rem;
+    gap: var(--space-3);
   }
 
   .range-inputs span {
-    text-align: left;
-    align-self: start;
-    font-size: 0.8rem;
-    margin-bottom: -0.25rem;
+    display: none; /* Hide "to" text on mobile - structure is clear without it */
+  }
+
+  .range-inputs input::placeholder {
+    font-weight: var(--font-medium);
   }
 
   .filter-actions {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-2);
     margin-top: 0.75rem;
   }
 
-  .btn {
+  .filter-actions > * {
     width: 100%;
-    padding: 0.8rem;
-    font-size: 0.95rem;
-    font-weight: 600;
   }
 }
 </style>

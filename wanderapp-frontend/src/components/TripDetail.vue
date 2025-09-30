@@ -3,12 +3,21 @@
     <div v-if="isLoading">Lade Trip-Details...</div>
     <div v-else-if="error" class="error-message">{{ error }}</div>
     <div v-else-if="trip">
-      <router-link :to="tripListRoute">&larr; Zurück zur Übersicht</router-link>
-      <div class="header">
+      <div class="header-with-controls">
         <h1>{{ trip.name }}</h1>
-        <div class="controls">
-          <router-link v-if="currentUser && currentUser.id === trip.creator.id" :to="`/trip/${trip.id}/edit`" class="btn btn-edit-trip">Edit Trip</router-link>
-          <router-link :to="getAddStageRoute()" class="btn btn-add-stage">{{ getAddStageLabel() }}</router-link>
+        <div class="top-controls">
+          <BaseButton tag="router-link" :to="tripListRoute" variant="secondary" size="small">
+            <span class="btn-text-desktop">&larr; Zurück zur Übersicht</span>
+            <span class="btn-text-mobile">Zurück</span>
+          </BaseButton>
+          <BaseButton v-if="currentUser && currentUser.id === trip.creator.id" tag="router-link" :to="`/trip/${trip.id}/edit`" variant="secondary" size="small">
+            <span class="btn-text-desktop">Edit Trip</span>
+            <span class="btn-text-mobile">Edit</span>
+          </BaseButton>
+          <BaseButton tag="router-link" :to="getAddStageRoute()" variant="primary" size="small">
+            <span class="btn-text-desktop">{{ getAddStageLabel() }}</span>
+            <span class="btn-text-mobile">{{ getAddStageLabelMobile() }}</span>
+          </BaseButton>
         </div>
       </div>
       <p v-if="trip.creator" class="creator"><em>Erstellt von: {{ trip.creator.username }}</em></p>
@@ -62,21 +71,25 @@
         <div class="social-details">
           <div class="participants" v-if="trip.participants.length">
             <strong>Teilnehmer:</strong>
-            <router-link v-for="p in trip.participants" :key="p.id" :to="`/dashboard/${p.id}`" class="participant-tag user-link">{{ p.username }}</router-link>
+            <router-link v-for="p in trip.participants" :key="p.id" :to="`/dashboard/${p.id}`" class="user-link">
+              <BaseBadge variant="default">{{ p.username }}</BaseBadge>
+            </router-link>
           </div>
           <!-- Show huts for hiking trips -->
           <div class="huts" v-if="trip.activity_type === 'HIKING' && trip.huts && trip.huts.length">
-            <strong>🏔️ Hütten:</strong>
+            <strong>Hütten:</strong>
             <template v-for="hut in trip.huts" :key="hut.id">
-              <a v-if="hut.link" :href="hut.link" target="_blank" @click.stop class="hut-tag">{{ hut.name }}</a>
-              <span v-else class="hut-tag">{{ hut.name }}</span>
+              <a v-if="hut.link" :href="hut.link" target="_blank" @click.stop>
+                <BaseBadge variant="info">{{ hut.name }}</BaseBadge>
+              </a>
+              <BaseBadge v-else variant="info">{{ hut.name }}</BaseBadge>
             </template>
           </div>
-          
+
           <!-- Show surf spots for surf trips -->
           <div class="surf-spots" v-if="trip.activity_type === 'SURFING' && getSurfSpotsList().length">
             <strong>🏄‍♂️ Surf Spots:</strong>
-            <span v-for="spot in getSurfSpotsList()" :key="spot.name" class="surf-spot-tag">{{ spot.display }}</span>
+            <BaseBadge v-for="spot in getSurfSpotsList()" :key="spot.name" variant="surfing">{{ spot.display }}</BaseBadge>
           </div>
         </div>
       </div>
@@ -100,8 +113,8 @@
             </div>
           </div>
           <div class="stage-controls" v-if="currentUser && stage && stage.creator && currentUser.id === stage.creator.id">
-            <router-link :to="getStageEditRoute(stage)" class="btn-edit">Bearbeiten ✏️</router-link>
-            <button @click="handleDeleteStage(stage.id)" class="btn-delete" title="Etappe löschen">🗑️</button>
+            <BaseButton tag="router-link" :to="getStageEditRoute(stage)" variant="ghost" size="small">Bearbeiten ✏️</BaseButton>
+            <BaseButton @click="handleDeleteStage(stage.id)" variant="ghost" size="small" title="Etappe löschen">🗑️</BaseButton>
           </div>
         </div>
         
@@ -266,6 +279,8 @@ import ProcessedText from './ProcessedText.vue';
 import { getTripUsers, getStageUsers } from '../utils/textProcessing.js';
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/style.css';
+import BaseButton from './base/BaseButton.vue';
+import BaseBadge from './base/BaseBadge.vue';
 
 const route = useRoute();
 const trip = ref(null);
@@ -379,15 +394,29 @@ const getAddStageRoute = () => {
 
 // Get the correct label for the add stage button
 const getAddStageLabel = () => {
-  if (!trip.value) return '🥾 Add Stage';
-  
+  if (!trip.value) return 'Add Stage';
+
   switch (trip.value.activity_type) {
     case 'HIKING':
-      return '🥾 Add Hiking Stage';
+      return 'Add Hiking Stage';
     case 'SURFING':
-      return '🏄‍♂️ Add Surf';
+      return 'Add Surf';
     default:
-      return '🥾 Add Stage';
+      return 'Add Stage';
+  }
+};
+
+// Get the correct label for mobile
+const getAddStageLabelMobile = () => {
+  if (!trip.value) return 'Add Stage';
+
+  switch (trip.value.activity_type) {
+    case 'HIKING':
+      return 'Add Hike';
+    case 'SURFING':
+      return 'Add Surf';
+    default:
+      return 'Add Stage';
   }
 };
 
@@ -443,8 +472,11 @@ const formatNumber = (num) => {
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
-  const options = { year: 'numeric', month: 'long', day: 'numeric' };
-  return new Date(dateString).toLocaleDateString('de-DE', options);
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
 };
 
 const formatDuration = (duration) => {
@@ -515,62 +547,278 @@ const getSurfSpotsList = () => {
 </script>
 
 <style scoped>
-.description { white-space: pre-wrap; word-break: break-word; margin-top: 0; }
-.creator { font-size: 0.9rem; color: #6c757d; }
-.header { display: flex; justify-content: space-between; align-items: center; margin: 1rem 0; min-width: 0; }
-.header h1 { word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; hyphens: auto; min-width: 0; margin: 0; }
-.header .controls { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
-.btn { display: inline-block; padding: 0.8rem 1.5rem; text-decoration: none; border-radius: 8px; font-weight: bold; }
-.btn-edit-trip { background-color: #ffc107; color: #212529; }
-
-.btn-add-stage { 
-  background-color: #42b983; 
-  color: white; 
-  padding: 0.6rem 1rem; 
-  font-size: 0.9rem;
+/* TripDetail - Migrated to Design System */
+.description {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 0;
 }
-a { text-decoration: none; color: #0d6efd; }
-a:hover { text-decoration: underline; }
-a[href="/"] { display: inline-block; margin-bottom: 1rem; }
-.trip-summary-card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; }
-.trip-stats-detail { display: flex; justify-content: space-around; padding-bottom: 1rem; margin-bottom: 1rem; min-width: 0; overflow: hidden; flex-wrap: wrap; gap: 0.5rem; }
-.social-details { border-top: 1px solid #e0e0e0; padding-top: 1rem; font-size: 0.9rem; min-width: 0; overflow: hidden; }
-.stat-item { text-align: center; }
-.stat-item .stat-value { font-size: 1.5rem; font-weight: 500; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; }
-.stat-item .stat-value small { font-size: 1rem; font-weight: 400; color: #6c757d; margin-left: 0.25rem; }
-.stat-item label { font-size: 0.8rem; color: #6c757d; display: block; margin-top: -5px; }
-.stat-separator { color: #e0e0e0; font-size: 1.5rem; }
-.participants, .huts, .surf-spots { margin-bottom: 0.5rem; min-width: 0; }
-.participant-tag { background-color: #e9ecef; color: #495057; }
-.hut-tag { background-color: #d1ecf1; color: #0c5460; }
-.hut-tag:hover { background-color: #bee5eb; color: #062c33; }
-a.hut-tag { text-decoration: none; }
-.surf-spot-tag { background-color: #20b2aa; color: white; }
-.participant-tag, .hut-tag, .surf-spot-tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; margin-right: 0.5rem; margin-top: 0.25rem; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; max-width: 200px; }
-.stage-card { border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem; min-width: 0; overflow: hidden; }
-.stage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; min-width: 0; }
-.stage-controls { display: flex; align-items: center; gap: 0.5rem; }
-.btn-edit { padding: 0.4rem 0.8rem; border: 1px solid #6c757d; color: #6c757d; border-radius: 5px; font-size: 0.9rem; }
-.btn-delete { background-color: transparent; border: none; cursor: pointer; font-size: 1.2rem; }
-.stage-stats { display: flex; align-items: baseline; gap: 0.75rem; margin: 1rem 0; padding-top: 1rem; border-top: 1px solid #f0f0f0; min-width: 0; overflow: hidden; }
-.stage-stats .stat-item { text-align: left; min-width: 0; flex-shrink: 1; }
-.stage-stats .stat-item span { font-size: 1.2rem; font-weight: 500; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; }
-.stage-stats .stat-item span small { font-size: 0.8rem; }
-.no-stages, .no-track { margin-top: 2rem; padding: 2rem; background-color: #f8f9fa; border-radius: 8px; text-align: center; color: #6c757d; }
-.photo-section { margin-top: 1.5rem; border-top: 1px solid #f0f0f0; padding-top: 1.5rem; }
-.photo-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; margin-bottom: 1.5rem; }
-.photo-wrapper { position: relative; }
-.thumbnail-container { cursor: pointer; width: 100%; aspect-ratio: 1 / 1; }
-.photo-gallery img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
-.btn-delete-photo { position: absolute; top: 5px; right: 5px; background-color: rgba(0, 0, 0, 0.5); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; line-height: 24px; text-align: center; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; }
-.photo-wrapper:hover .btn-delete-photo { opacity: 1; }
-.error-message { color: red; }
+
+.creator {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: var(--space-4) 0;
+  min-width: 0;
+}
+
+.header h1 {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.header .controls {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+a {
+  text-decoration: none;
+  color: var(--color-blue);
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.header-with-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: var(--space-4) 0;
+  gap: var(--space-4);
+}
+
+.header-with-controls h1 {
+  margin: 0;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  min-width: 0;
+  flex: 1;
+}
+
+.top-controls {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.btn-text-mobile {
+  display: none;
+}
+
+.btn-text-desktop {
+  display: inline;
+}
+
+/* Trip summary card */
+.trip-summary-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin: var(--space-6) 0;
+}
+
+.trip-stats-detail {
+  display: flex;
+  justify-content: space-around;
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  min-width: 0;
+  overflow: hidden;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.social-details {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-4);
+  font-size: var(--text-sm);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-item .stat-value {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-medium);
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.stat-item .stat-value small {
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  color: var(--color-text-secondary);
+  margin-left: var(--space-1);
+}
+
+.stat-item label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  display: block;
+  margin-top: -5px;
+}
+
+.stat-separator {
+  color: var(--color-border-light);
+  font-size: var(--text-2xl);
+}
+
+.participants,
+.huts,
+.surf-spots {
+  margin-bottom: var(--space-2);
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3); /* Badge spacing for better tap targets */
+  align-items: center;
+}
+/* Stage cards */
+.stage-card {
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-top: var(--space-6);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+  min-width: 0;
+}
+
+.stage-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.stage-stats {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.stage-stats .stat-item {
+  text-align: left;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.stage-stats .stat-item span {
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.stage-stats .stat-item span small {
+  font-size: var(--text-xs);
+}
+
+.no-stages,
+.no-track {
+  margin-top: var(--space-8);
+  padding: var(--space-8);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+/* Photo section */
+.photo-section {
+  margin-top: var(--space-6);
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-6);
+}
+
+.photo-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.photo-wrapper {
+  position: relative;
+}
+
+.thumbnail-container {
+  cursor: pointer;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.photo-gallery img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.btn-delete-photo {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.photo-wrapper:hover .btn-delete-photo {
+  opacity: 1;
+}
+
+.error-message {
+  color: var(--color-error);
+}
 
 /* Activity-specific styling */
 .stage-title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   min-width: 0;
   flex: 1;
 }
@@ -583,7 +831,7 @@ a.hut-tag { text-decoration: none; }
 }
 
 .title-content h3 {
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-1);
   word-wrap: break-word;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -592,40 +840,40 @@ a.hut-tag { text-decoration: none; }
 }
 
 .stage-date {
-  font-size: 0.9rem;
-  font-weight: normal;
-  color: #6c757d;
+  font-size: var(--text-sm);
+  font-weight: var(--font-normal);
+  color: var(--color-text-secondary);
   margin-top: 0;
 }
 
 .activity-icon {
-  font-size: 1.5rem;
-  margin-right: 0.5rem;
+  font-size: var(--text-2xl);
+  margin-right: var(--space-2);
 }
 
 .activity-hiking {
-  border-left: 4px solid #28a745;
+  border-left: 4px solid var(--color-hiking);
 }
 
 .activity-running {
-  border-left: 4px solid #007bff;
+  border-left: 4px solid var(--color-running);
 }
 
 .activity-surfing {
-  border-left: 4px solid #20b2aa;
+  border-left: 4px solid var(--color-surfing);
 }
 
 .surf-details {
-  margin-top: 1rem;
-  padding: 1rem;
+  margin-top: var(--space-4);
+  padding: var(--space-4);
   background-color: rgba(32, 178, 170, 0.05);
-  border-radius: 8px;
-  border-left: 3px solid #20b2aa;
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-surfing);
 }
 
 .detail-item {
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
 }
 
 .detail-item:last-child {
@@ -633,15 +881,15 @@ a.hut-tag { text-decoration: none; }
 }
 
 .surf-stats {
-  border-top-color: #20b2aa;
+  border-top-color: var(--color-surfing);
 }
 
 .surf-overview {
   background: linear-gradient(135deg, rgba(32, 178, 170, 0.1) 0%, rgba(72, 187, 120, 0.1) 100%);
-  border-radius: 8px;
-  padding: 1rem;
-  margin: -1rem;
-  margin-bottom: 1rem;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin: calc(-1 * var(--space-4));
+  margin-bottom: var(--space-4);
 }
 
 /* iPhone/Touch: Buttons ohne Hover sichtbar machen */
@@ -654,10 +902,36 @@ a.hut-tag { text-decoration: none; }
 
 /* Responsive layout fixes */
 @media (max-width: 600px) {
+  /* Show mobile text, hide desktop text */
+  .btn-text-mobile {
+    display: inline;
+  }
+
+  .btn-text-desktop {
+    display: none;
+  }
+
+  /* Header with controls: stack buttons above title on mobile */
+  .header-with-controls {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: var(--space-4);
+  }
+
+  .header-with-controls h1 {
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+
+  /* Top controls: horizontal buttons above title */
+  .top-controls {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
   /* Trip + Stage header: stack title and buttons */
   .trip-header,
-  .stage-header,
-  .header {
+  .stage-header {
     flex-direction: column;   /* title above, buttons below */
     align-items: flex-start;
     gap: .5rem;
@@ -667,15 +941,16 @@ a.hut-tag { text-decoration: none; }
   .stage-controls,
   .controls {
     display: flex;
-    flex-wrap: wrap;          /* allow wrapping if two buttons don't fit */
-    gap: .5rem;
+    flex-direction: column;   /* Stack buttons vertically to prevent wrapping issues */
+    gap: var(--space-2);
     width: 100%;
   }
 
-  /* Enhanced word-breaking for mobile */
-  .header h1 {
-    font-size: 1.5rem;
-    line-height: 1.3;
+  .trip-controls > *,
+  .stage-controls > *,
+  .controls > * {
+    width: 100%;              /* Full-width buttons on mobile */
+    text-align: center;
   }
 
   .title-content h3 {
@@ -683,10 +958,37 @@ a.hut-tag { text-decoration: none; }
     line-height: 1.3;
   }
 
+  /* Improve participant badge wrapping on mobile */
+  .participants,
+  .huts,
+  .surf-spots {
+    gap: var(--space-3); /* Maintain 12px gap on mobile for easy tapping */
+  }
+
+  .participants strong,
+  .huts strong,
+  .surf-spots strong {
+    width: 100%;
+    margin-bottom: var(--space-1);
+  }
+
   .stage-card {
     padding: 1rem;
   }
 
+  /* Badge sizing and overflow handling on mobile */
+  .participants :deep(.badge),
+  .huts :deep(.badge),
+  .surf-spots :deep(.badge) {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    font-size: 0.75rem;
+  }
+
+  /* Legacy classes - kept for backwards compatibility */
   .participant-tag, .hut-tag, .surf-spot-tag {
     max-width: 120px;
     font-size: 0.75rem;
@@ -703,11 +1005,28 @@ a.hut-tag { text-decoration: none; }
     min-width: 45%;           /* 2 columns on small screens */
   }
 
-  /* Stage stats: keep on one line but adjust spacing */
+  /* Trip summary stats: convert to grid for better readability */
+  .trip-stats-detail {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    justify-content: center;
+  }
+
+  .trip-stats-detail .stat-separator {
+    display: none;
+  }
+
+  /* Stage stats: convert to grid for better mobile readability */
   .stage-stats {
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
     font-size: 0.9rem;
-    flex-wrap: wrap;
+  }
+
+  .stage-stats .stat-separator {
+    display: none;
   }
 
   .stage-stats .stat-item span {
@@ -718,6 +1037,20 @@ a.hut-tag { text-decoration: none; }
   .description {
     font-size: 0.9rem;
     line-height: 1.4;
+  }
+
+  /* Photo gallery optimization for mobile */
+  .photo-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Slightly smaller thumbnails */
+    gap: var(--space-3); /* Increased from 8px to 12px for better spacing */
+    max-width: 100%;
+  }
+
+  /* Ensure 2-3 columns max on narrow screens */
+  @media (max-width: 400px) {
+    .photo-gallery {
+      grid-template-columns: repeat(2, 1fr); /* Force 2 columns on very narrow screens */
+    }
   }
 }
 
