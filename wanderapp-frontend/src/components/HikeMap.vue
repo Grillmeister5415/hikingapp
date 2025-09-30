@@ -47,6 +47,9 @@ onMounted(async () => {
       zoom: 7
     });
 
+    // Add navigation controls for better touch interaction
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), 'top-right');
+
     map.on('load', () => {
       if (trackData.value && trackData.value.coordinates.length > 0) {
         // Die Route zur Karte hinzufügen
@@ -80,4 +83,17 @@ onMounted(async () => {
 
 <style scoped>
   .map-container { border: 1px solid #ccc; padding: 1rem; margin-top: 1rem; }
+
+  /* Increase map control sizes for better touch interaction on mobile */
+  @media (max-width: 768px) {
+    :deep(.mapboxgl-ctrl-group) button {
+      width: 44px !important;
+      height: 44px !important;
+      font-size: 18px;
+    }
+
+    :deep(.mapboxgl-ctrl-icon) {
+      transform: scale(1.3);
+    }
+  }
 </style>

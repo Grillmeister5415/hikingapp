@@ -16,11 +16,14 @@ onMounted(fetchCurrentUser);
 </script>
 
 <style>
+/* Import global design system styles */
+@import './styles/base.css';
+
 #app-container {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  color: #2c3e50;
+  font-family: var(--font-base);
+  color: var(--color-text-primary);
   max-width: 960px;
-  margin: 40px auto;
-  padding: 20px;
+  margin: var(--space-10) auto;
+  padding: var(--space-5);
 }
 </style>

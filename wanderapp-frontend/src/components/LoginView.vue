@@ -1,20 +1,39 @@
 <template>
   <div class="login-container">
-    <form @submit.prevent="handleLogin" class="login-form">
+    <BaseCard variant="elevated" padding="large" class="login-form">
       <h2>Anmelden</h2>
-      <div class="form-group">
-        <label for="email">E-Mail</label>
-        <input type="email" id="email" v-model="email" required autocomplete="username" />
-      </div>
-      <div class="form-group">
-        <label for="password">Passwort</label>
-        <input type="password" id="password" v-model="password" required autocomplete="current-password" />
-      </div>
-      <button type="submit" :disabled="isLoading">
+
+      <BaseInput
+        id="email"
+        type="email"
+        v-model="email"
+        label="E-Mail"
+        required
+        autocomplete="username"
+      />
+
+      <BaseInput
+        id="password"
+        type="password"
+        v-model="password"
+        label="Passwort"
+        required
+        autocomplete="current-password"
+      />
+
+      <BaseButton
+        type="submit"
+        variant="primary"
+        size="large"
+        :loading="isLoading"
+        full-width
+        @click.prevent="handleLogin"
+      >
         {{ isLoading ? 'Melde an...' : 'Anmelden' }}
-      </button>
+      </BaseButton>
+
       <p v-if="error" class="error">{{ error }}</p>
-    </form>
+    </BaseCard>
   </div>
 </template>
 
@@ -22,6 +41,9 @@
 import { ref } from 'vue';
 import api from '@/api'; // <-- shared axios instance with baseURL: '/api'
 import { useTabAwareNavigation } from '../utils/navigation.js';
+import BaseCard from './base/BaseCard.vue';
+import BaseInput from './base/BaseInput.vue';
+import BaseButton from './base/BaseButton.vue';
 
 const { navigateToTripList } = useTabAwareNavigation();
 const email = ref('');
@@ -61,48 +83,24 @@ const handleLogin = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 80vh;
+  min-height: 80vh;
 }
+
 .login-form {
   width: 100%;
   max-width: 400px;
-  padding: 2rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
-h2 { 
-  text-align: center; 
-  margin-bottom: 1.5rem; 
+
+h2 {
+  text-align: center;
+  margin-bottom: var(--space-6);
+  color: var(--color-text-primary);
 }
-.form-group { 
-  display: flex; 
-  flex-direction: column; 
-}
-label { 
-  margin-bottom: 0.5rem; 
-  font-weight: bold; 
-}
-input { 
-  padding: 0.8rem; 
-  border: 1px solid #ccc; 
-  border-radius: 4px; 
-  font-size: 1rem; 
-  margin-bottom: 1rem; 
-}
-button { 
-  padding: 1rem; 
-  background-color: #42b983; 
-  color: white; 
-  border: none; 
-  border-radius: 4px; 
-  font-size: 1rem; 
-  cursor: pointer; 
-  width: 100%; 
-}
-.error { 
-  color: red; 
-  text-align: center; 
-  margin-top: 1rem; 
+
+.error {
+  color: var(--color-error);
+  text-align: center;
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
 }
 </style>

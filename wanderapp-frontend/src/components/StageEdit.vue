@@ -3,25 +3,43 @@
     <div v-if="isLoading">Lade Etappen-Daten...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else-if="stage">
-      <router-link :to="`/trip/${stage.trip}`">&larr; Abbrechen und zurück zum Trip</router-link>
+      <BaseButton tag="router-link" :to="`/trip/${stage.trip}`" variant="ghost" size="small">
+        &larr; Abbrechen und zurück zum Trip
+      </BaseButton>
       <h1>Etappe bearbeiten</h1>
       <form @submit.prevent="handleSubmit" class="stage-form">
-        <div class="form-group">
-          <label for="name">Etappen-Name</label>
-          <input type="text" id="name" v-model="stage.name" required />
-        </div>
-        <div class="form-group">
-          <label for="date">Datum</label>
-          <input type="date" id="date" v-model="stage.date" required :min="tripStartDate" :max="tripEndDate" />
-        </div>
-        <div class="form-group">
-          <label for="description">Beschreibung (optional)</label>
-          <textarea id="description" v-model="stage.description"></textarea>
-        </div>
-        <div class="form-group">
-          <label for="external_link">Link (optional)</label>
-          <input type="url" id="external_link" v-model="stage.external_link" placeholder="https://tourenportal.com/..." />
-        </div>
+        <BaseInput
+          id="name"
+          type="text"
+          v-model="stage.name"
+          label="Etappen-Name"
+          required
+        />
+
+        <BaseInput
+          id="date"
+          type="date"
+          v-model="stage.date"
+          label="Datum"
+          required
+          :min="tripStartDate"
+          :max="tripEndDate"
+        />
+
+        <BaseInput
+          id="description"
+          type="textarea"
+          v-model="stage.description"
+          label="Beschreibung (optional)"
+        />
+
+        <BaseInput
+          id="external_link"
+          type="url"
+          v-model="stage.external_link"
+          label="Link (optional)"
+          placeholder="https://tourenportal.com/..."
+        />
 
         <hr>
 
@@ -87,108 +105,138 @@
 
           <div class="manual-fields">
             <p>Manuelle Eingabe:</p>
-            <div class="form-group">
-              <label for="duration">{{ getDurationLabel() }}</label>
-              <input 
-                type="text" 
-                id="duration" 
-                v-model="stage.manual_duration" 
-                placeholder="z.B. 04:30" 
-                pattern="[0-9]+:[0-5][0-9]"
-                title="Bitte im Format Stunden:Minuten eingeben."
-              />
-              <small>Dieses Feld überschreibt die Dauer aus der GPX-Datei, falls vorhanden.</small>
-            </div>
-            <div class="form-group">
-              <label for="length">Distanz (km)</label>
-              <input type="number" step="0.1" id="length" v-model="stage.manual_length_km" />
-            </div>
-            <div class="form-group">
-              <label for="elevation_gain">Höhenmeter (Aufstieg)</label>
-              <input type="number" id="elevation_gain" v-model="stage.manual_elevation_gain" />
-            </div>
-            <div class="form-group">
-              <label for="elevation_loss">Höhenmeter (Abstieg)</label>
-              <input type="number" id="elevation_loss" v-model="stage.manual_elevation_loss" />
-            </div>
+            <BaseInput
+              id="duration"
+              type="text"
+              v-model="stage.manual_duration"
+              :label="getDurationLabel()"
+              placeholder="z.B. 04:30"
+              pattern="[0-9]+:[0-5][0-9]"
+              helper-text="Dieses Feld überschreibt die Dauer aus der GPX-Datei, falls vorhanden."
+            />
+            <BaseInput
+              id="length"
+              type="number"
+              step="0.1"
+              v-model="stage.manual_length_km"
+              label="Distanz (km)"
+            />
+            <BaseInput
+              id="elevation_gain"
+              type="number"
+              v-model="stage.manual_elevation_gain"
+              label="Höhenmeter (Aufstieg)"
+            />
+            <BaseInput
+              id="elevation_loss"
+              type="number"
+              v-model="stage.manual_elevation_loss"
+              label="Höhenmeter (Abstieg)"
+            />
           </div>
         </div>
 
         <!-- Surfing specific fields -->
         <div v-if="stage.activity_type === 'SURFING'" class="surf-fields">
-          <div class="form-group">
-            <label for="time_in_water">Zeit im Wasser (HH:MM)</label>
-            <input 
-              type="text" 
-              id="time_in_water" 
-              v-model="stage.time_in_water" 
-              placeholder="z.B. 02:30" 
-              pattern="[0-9]+:[0-5][0-9]"
-              title="Bitte im Format Stunden:Minuten eingeben."
+          <BaseInput
+            id="time_in_water"
+            type="text"
+            v-model="stage.time_in_water"
+            label="Zeit im Wasser (HH:MM)"
+            placeholder="z.B. 02:30"
+            pattern="[0-9]+:[0-5][0-9]"
+          />
+
+          <BaseInput
+            id="surf_spot"
+            type="text"
+            v-model="stage.surf_spot"
+            label="Surf Spot"
+            placeholder="z.B. Pipeline, Ericeira"
+          />
+
+          <div class="form-group-row">
+            <BaseInput
+              id="wave_height"
+              type="number"
+              step="0.1"
+              v-model="stage.wave_height"
+              label="Wellenhöhe (m)"
+              placeholder="z.B. 1.5"
+            />
+            <BaseInput
+              id="wave_quality"
+              type="select"
+              v-model="stage.wave_quality"
+              label="Wellenqualität (1-5 Sterne)"
+            >
+              <option value="">Nicht bewertet</option>
+              <option value="1">⭐ (1 Stern)</option>
+              <option value="2">⭐⭐ (2 Sterne)</option>
+              <option value="3">⭐⭐⭐ (3 Sterne)</option>
+              <option value="4">⭐⭐⭐⭐ (4 Sterne)</option>
+              <option value="5">⭐⭐⭐⭐⭐ (5 Sterne)</option>
+            </BaseInput>
+          </div>
+
+          <BaseInput
+            id="surfboard_used"
+            type="text"
+            v-model="stage.surfboard_used"
+            label="Verwendetes Surfbrett"
+            placeholder="z.B. 6'2 Shortboard"
+          />
+
+          <div class="form-group-row">
+            <BaseInput
+              id="waves_caught"
+              type="number"
+              v-model="stage.waves_caught"
+              label="Gefangene Wellen"
+              placeholder="z.B. 15"
+            />
+            <BaseInput
+              id="water_temperature"
+              type="number"
+              v-model="stage.water_temperature"
+              label="Wassertemperatur (°C)"
+              placeholder="z.B. 18"
             />
           </div>
-          
-          <div class="form-group">
-            <label for="surf_spot">Surf Spot</label>
-            <input type="text" id="surf_spot" v-model="stage.surf_spot" placeholder="z.B. Pipeline, Ericeira" />
-          </div>
-          
-          <div class="form-group-row">
-            <div class="form-group">
-              <label for="wave_height">Wellenhöhe (m)</label>
-              <input type="number" step="0.1" id="wave_height" v-model="stage.wave_height" placeholder="z.B. 1.5" />
-            </div>
-            <div class="form-group">
-              <label for="wave_quality">Wellenqualität (1-5 Sterne)</label>
-              <select id="wave_quality" v-model="stage.wave_quality">
-                <option value="">Nicht bewertet</option>
-                <option value="1">⭐ (1 Stern)</option>
-                <option value="2">⭐⭐ (2 Sterne)</option>
-                <option value="3">⭐⭐⭐ (3 Sterne)</option>
-                <option value="4">⭐⭐⭐⭐ (4 Sterne)</option>
-                <option value="5">⭐⭐⭐⭐⭐ (5 Sterne)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="surfboard_used">Verwendetes Surfbrett</label>
-            <input type="text" id="surfboard_used" v-model="stage.surfboard_used" placeholder="z.B. 6'2 Shortboard" />
-          </div>
 
           <div class="form-group-row">
-            <div class="form-group">
-              <label for="waves_caught">Gefangene Wellen</label>
-              <input type="number" id="waves_caught" v-model="stage.waves_caught" placeholder="z.B. 15" />
-            </div>
-            <div class="form-group">
-              <label for="water_temperature">Wassertemperatur (°C)</label>
-              <input type="number" id="water_temperature" v-model="stage.water_temperature" placeholder="z.B. 18" />
-            </div>
-          </div>
-
-          <div class="form-group-row">
-            <div class="form-group">
-              <label for="tide_stage">Gezeitenstadium</label>
-              <select id="tide_stage" v-model="stage.tide_stage">
-                <option value="">Nicht angegeben</option>
-                <option value="LOW">Niedrigwasser</option>
-                <option value="MID">Mittleres Wasser</option>
-                <option value="HIGH">Hochwasser</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="tide_movement">Gezeitenbewegung</label>
-              <select id="tide_movement" v-model="stage.tide_movement">
-                <option value="">Nicht angegeben</option>
-                <option value="RISING">Steigend</option>
-                <option value="FALLING">Fallend</option>
-              </select>
-            </div>
+            <BaseInput
+              id="tide_stage"
+              type="select"
+              v-model="stage.tide_stage"
+              label="Gezeitenstadium"
+            >
+              <option value="">Nicht angegeben</option>
+              <option value="LOW">Niedrigwasser</option>
+              <option value="MID">Mittleres Wasser</option>
+              <option value="HIGH">Hochwasser</option>
+            </BaseInput>
+            <BaseInput
+              id="tide_movement"
+              type="select"
+              v-model="stage.tide_movement"
+              label="Gezeitenbewegung"
+            >
+              <option value="">Nicht angegeben</option>
+              <option value="RISING">Steigend</option>
+              <option value="FALLING">Fallend</option>
+            </BaseInput>
           </div>
         </div>
-        
-        <button type="submit" :disabled="isSubmitting">Änderungen speichern</button>
+        <BaseButton
+          type="submit"
+          variant="primary"
+          size="large"
+          :disabled="isSubmitting"
+          full-width
+        >
+          {{ isSubmitting ? 'Speichere...' : 'Änderungen speichern' }}
+        </BaseButton>
       </form>
     </div>
   </div>
@@ -199,6 +247,8 @@ import { ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import gpxParser from 'gpxparser';
 import api from '../api';
+import BaseButton from './base/BaseButton.vue';
+import BaseInput from './base/BaseInput.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -374,77 +424,171 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.stage-form { display: flex; flex-direction: column; gap: 1rem; max-width: 500px; margin: 2rem auto; }
-.form-group { display: flex; flex-direction: column; }
-.form-group small { font-size: 0.8rem; color: #6c757d; margin-top: 0.25rem; }
-label { margin-bottom: 0.5rem; font-weight: bold; }
-input, textarea { padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-button { padding: 1rem; background-color: #42b983; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
-button:disabled { background-color: #ccc; cursor: not-allowed; }
-.manual-fields { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-top: 1rem; }
-.surf-fields { border: 1px solid #20b2aa; padding: 1rem; border-radius: 8px; margin-top: 1rem; background-color: rgba(32, 178, 170, 0.05); }
-.form-group-row { display: flex; gap: 1rem; }
-.form-group-row .form-group { flex: 1; }
-select { padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; background: white; }
-.error { color: red; }
-.parsing-status { margin-top: 0.5rem; font-style: italic; }
+h1 {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-6);
+  color: var(--color-text-primary);
+  font-size: var(--text-2xl);
+}
+
+.stage-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 600px;
+  margin: var(--space-8) auto;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.form-group input[type="file"] {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  background-color: var(--color-bg-primary);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border-light);
+  margin: var(--space-4) 0;
+}
+
+.manual-fields {
+  border: 1px solid var(--color-border);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-4);
+  background-color: var(--color-bg-secondary);
+}
+
+.manual-fields p {
+  margin: 0 0 var(--space-4) 0;
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.surf-fields {
+  border: 1px solid var(--color-surf);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-4);
+  background-color: rgba(32, 178, 170, 0.05);
+}
+
+.form-group-row {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.form-group-row > * {
+  flex: 1;
+}
+
+.error {
+  color: var(--color-error);
+  text-align: center;
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.parsing-status {
+  margin-top: var(--space-2);
+  font-style: italic;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
 
 /* GPX Preview Styles */
 .gpx-preview {
-  border: 2px solid #42b983;
-  background-color: rgba(66, 185, 131, 0.05);
-  padding: 1rem;
-  border-radius: 8px;
-  margin: 1rem 0;
+  border: 2px solid var(--color-primary);
+  background-color: var(--color-green-light);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  margin: var(--space-4) 0;
 }
+
 .gpx-preview h4 {
-  margin: 0 0 0.5rem 0;
-  color: #42b983;
-  font-size: 1rem;
+  margin: 0 0 var(--space-2) 0;
+  color: var(--color-primary);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
 }
+
 .preview-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
 }
+
 .preview-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
   min-width: 80px;
 }
+
 .preview-stat .value {
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: #2c3e50;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
 }
+
+.preview-stat .value small {
+  font-size: var(--text-sm);
+  font-weight: var(--font-normal);
+}
+
 .preview-stat label {
-  font-size: 0.8rem;
-  color: #6c757d;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
   margin: 0;
   text-align: center;
+  font-weight: var(--font-normal);
 }
+
 .preview-note {
   margin: 0;
-  padding-top: 0.5rem;
-  border-top: 1px solid rgba(66, 185, 131, 0.3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-light);
 }
+
 .preview-note small {
-  color: #6c757d;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
 }
 
 /* Existing GPX Data Styles */
 .existing-gpx-data {
-  border: 2px solid #007bff;
+  border: 2px solid var(--color-blue);
   background-color: rgba(0, 123, 255, 0.05);
-  padding: 1rem;
-  border-radius: 8px;
-  margin: 1rem 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  margin: var(--space-4) 0;
 }
+
 .existing-gpx-data h4 {
-  margin: 0 0 0.5rem 0;
-  color: #007bff;
-  font-size: 1rem;
+  margin: 0 0 var(--space-2) 0;
+  color: var(--color-blue);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+}
+
+/* Mobile: Increase GPX file upload text size for better readability */
+@media (max-width: 768px) {
+  .form-group input[type="file"] {
+    font-size: 16px; /* Prevent iOS auto-zoom and improve readability */
+  }
 }
 </style>

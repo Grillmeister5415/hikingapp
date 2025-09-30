@@ -1,6 +1,24 @@
 # WanderApp - Technische Dokumentation
 
-**Version 1.0 - Stand: 06. September 2025**
+**Version 1.1 - Stand: 29. September 2025**
+
+## 🎨 Design System (NEU - September 2025)
+
+WanderApp verfügt jetzt über ein vollständiges, produktionsreifes Design-System:
+
+- **📘 [DESIGN_SYSTEM_GUIDE.md](./DESIGN_SYSTEM_GUIDE.md)** - Umfassende Dokumentation aller Design Tokens, Base Components und Verwendungsbeispiele
+- **📋 [CHANGELOG.md](./CHANGELOG.md)** - Detaillierte Implementierungsdokumentation und Fortschritt
+
+**Highlights:**
+- ✅ 150+ Design Tokens (Farben, Spacing, Typografie)
+- ✅ 5 wiederverwendbare Base Components
+- ✅ 50-65% CSS-Reduktion in migrierten Komponenten
+- ✅ Zero Breaking Changes
+- ✅ WCAG AA Accessibility Ready
+
+**Quick Start für Entwickler:** Siehe [DESIGN_SYSTEM_GUIDE.md](./DESIGN_SYSTEM_GUIDE.md#quick-start)
+
+---
 
 ## 1. Einleitung & Übersicht
 

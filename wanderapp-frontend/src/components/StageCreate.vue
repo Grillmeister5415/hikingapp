@@ -1,24 +1,42 @@
 <template>
   <div>
-    <router-link :to="`/trip/${tripId}`">&larr; Abbrechen und zurück zum Trip</router-link>
+    <BaseButton tag="router-link" :to="`/trip/${tripId}`" variant="ghost" size="small">
+      &larr; Abbrechen und zurück zum Trip
+    </BaseButton>
     <h1>Neue Etappe hinzufügen</h1>
     <form @submit.prevent="handleSubmit" class="stage-form">
-      <div class="form-group">
-        <label for="name">Etappen-Name</label>
-        <input type="text" id="name" v-model="name" required />
-      </div>
-      <div class="form-group">
-        <label for="date">Datum</label>
-        <input type="date" id="date" v-model="date" required :min="tripStartDate" :max="tripEndDate" />
-      </div>
-      <div class="form-group">
-        <label for="description">Beschreibung (optional)</label>
-        <textarea id="description" v-model="description"></textarea>
-      </div>
-      <div class="form-group">
-        <label for="external_link">Link (optional)</label>
-        <input type="url" id="external_link" v-model="external_link" placeholder="https://tourenportal.com/..." />
-      </div>
+      <BaseInput
+        id="name"
+        type="text"
+        v-model="name"
+        label="Etappen-Name"
+        required
+      />
+
+      <BaseInput
+        id="date"
+        type="date"
+        v-model="date"
+        label="Datum"
+        required
+        :min="tripStartDate"
+        :max="tripEndDate"
+      />
+
+      <BaseInput
+        id="description"
+        type="textarea"
+        v-model="description"
+        label="Beschreibung (optional)"
+      />
+
+      <BaseInput
+        id="external_link"
+        type="url"
+        v-model="external_link"
+        label="Link (optional)"
+        placeholder="https://tourenportal.com/..."
+      />
 
       <hr>
 
@@ -56,33 +74,45 @@
       
       <div class="manual-fields">
         <p>Manuelle Eingabe:</p>
-        <div class="form-group">
-          <label for="duration">Wanderdauer (HH:MM)</label>
-          <input 
-            type="text" 
-            id="duration" 
-            v-model="manual_duration" 
-            placeholder="z.B. 04:30 oder 50:00" 
-            pattern="[0-9]+:[0-5][0-9]"
-            title="Bitte im Format Stunden:Minuten eingeben, z.B. 04:30."
-          />
-          <small>Dieses Feld überschreibt die Dauer aus der GPX-Datei, falls vorhanden.</small>
-        </div>
-        <div class="form-group">
-          <label for="length">Distanz (km)</label>
-          <input type="number" step="0.1" id="length" v-model="manual_length_km" />
-        </div>
-        <div class="form-group">
-          <label for="elevation_gain">Höhenmeter (Aufstieg)</label>
-          <input type="number" id="elevation_gain" v-model="manual_elevation_gain" />
-        </div>
-        <div class="form-group">
-          <label for="elevation_loss">Höhenmeter (Abstieg)</label>
-          <input type="number" id="elevation_loss" v-model="manual_elevation_loss" />
-        </div>
+        <BaseInput
+          id="duration"
+          type="text"
+          v-model="manual_duration"
+          label="Wanderdauer (HH:MM)"
+          placeholder="z.B. 04:30 oder 50:00"
+          pattern="[0-9]+:[0-5][0-9]"
+          helper-text="Dieses Feld überschreibt die Dauer aus der GPX-Datei, falls vorhanden."
+        />
+        <BaseInput
+          id="length"
+          type="number"
+          step="0.1"
+          v-model="manual_length_km"
+          label="Distanz (km)"
+        />
+        <BaseInput
+          id="elevation_gain"
+          type="number"
+          v-model="manual_elevation_gain"
+          label="Höhenmeter (Aufstieg)"
+        />
+        <BaseInput
+          id="elevation_loss"
+          type="number"
+          v-model="manual_elevation_loss"
+          label="Höhenmeter (Abstieg)"
+        />
       </div>
-      
-      <button type="submit" :disabled="isSubmitting">Etappe speichern</button>
+
+      <BaseButton
+        type="submit"
+        variant="primary"
+        size="large"
+        :disabled="isSubmitting"
+        full-width
+      >
+        {{ isSubmitting ? 'Speichere...' : 'Etappe speichern' }}
+      </BaseButton>
       <p v-if="error" class="error">{{ error }}</p>
     </form>
   </div>
@@ -93,6 +123,8 @@ import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import gpxParser from 'gpxparser';
 import api from '../api';
+import BaseButton from './base/BaseButton.vue';
+import BaseInput from './base/BaseInput.vue';
 
 // Props for activity type (can be passed from router)
 const props = defineProps({
@@ -219,59 +251,138 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.stage-form { display: flex; flex-direction: column; gap: 1rem; max-width: 500px; margin: 2rem auto; }
-.form-group { display: flex; flex-direction: column; }
-.form-group small { font-size: 0.8rem; color: #6c757d; margin-top: 0.25rem; }
-label { margin-bottom: 0.5rem; font-weight: bold; }
-input, textarea { padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-button { padding: 1rem; background-color: #42b983; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
-button:disabled { background-color: #ccc; cursor: not-allowed; }
-.manual-fields { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-top: 1rem; }
-.error { color: red; }
-.parsing-status { margin-top: 0.5rem; font-style: italic; }
+h1 {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-6);
+  color: var(--color-text-primary);
+  font-size: var(--text-2xl);
+}
+
+.stage-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 600px;
+  margin: var(--space-8) auto;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.form-group input[type="file"] {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  background-color: var(--color-bg-primary);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border-light);
+  margin: var(--space-4) 0;
+}
+
+.manual-fields {
+  border: 1px solid var(--color-border);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-4);
+  background-color: var(--color-bg-secondary);
+}
+
+.manual-fields p {
+  margin: 0 0 var(--space-4) 0;
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.error {
+  color: var(--color-error);
+  text-align: center;
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.parsing-status {
+  margin-top: var(--space-2);
+  font-style: italic;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
 
 /* GPX Preview Styles */
 .gpx-preview {
-  border: 2px solid #42b983;
-  background-color: rgba(66, 185, 131, 0.05);
-  padding: 1rem;
-  border-radius: 8px;
-  margin: 1rem 0;
+  border: 2px solid var(--color-primary);
+  background-color: var(--color-green-light);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  margin: var(--space-4) 0;
 }
+
 .gpx-preview h4 {
-  margin: 0 0 0.5rem 0;
-  color: #42b983;
-  font-size: 1rem;
+  margin: 0 0 var(--space-2) 0;
+  color: var(--color-primary);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
 }
+
 .preview-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
 }
+
 .preview-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
   min-width: 80px;
 }
+
 .preview-stat .value {
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: #2c3e50;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
 }
+
+.preview-stat .value small {
+  font-size: var(--text-sm);
+  font-weight: var(--font-normal);
+}
+
 .preview-stat label {
-  font-size: 0.8rem;
-  color: #6c757d;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
   margin: 0;
   text-align: center;
+  font-weight: var(--font-normal);
 }
+
 .preview-note {
   margin: 0;
-  padding-top: 0.5rem;
-  border-top: 1px solid rgba(66, 185, 131, 0.3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-light);
 }
+
 .preview-note small {
-  color: #6c757d;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* Mobile: Increase GPX file upload text size for better readability */
+@media (max-width: 768px) {
+  .form-group input[type="file"] {
+    font-size: 16px; /* Prevent iOS auto-zoom and improve readability */
+  }
 }
 </style>

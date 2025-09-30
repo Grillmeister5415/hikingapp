@@ -1,25 +1,41 @@
 <template>
   <div>
-    <router-link :to="cancelRoute">&larr; Abbrechen</router-link>
+    <BaseButton tag="router-link" :to="cancelRoute" variant="ghost" size="small">&larr; Abbrechen</BaseButton>
     <h1>{{ getTripTypeLabel() }} erstellen</h1>
     <form @submit.prevent="handleSubmit" class="trip-form">
-      <div class="form-group">
-        <label for="name">Trip-Name</label>
-        <input type="text" id="name" v-model="name" required />
-      </div>
-      <div class="form-group">
-        <label for="description">Beschreibung</label>
-        <textarea id="description" v-model="description"></textarea>
-      </div>
+      <BaseInput
+        id="name"
+        type="text"
+        v-model="name"
+        label="Trip-Name"
+        required
+      />
+
+      <BaseInput
+        id="description"
+        type="textarea"
+        v-model="description"
+        label="Beschreibung"
+      />
+
       <div class="form-group-row">
-        <div class="form-group">
-          <label for="start_date">Startdatum</label>
-          <input type="date" id="start_date" v-model="start_date" required :max="end_date" />
-        </div>
-        <div class="form-group">
-          <label for="end_date">Enddatum</label>
-          <input type="date" id="end_date" v-model="end_date" required :min="start_date" />
-        </div>
+        <BaseInput
+          id="start_date"
+          type="date"
+          v-model="start_date"
+          label="Startdatum"
+          required
+          :max="end_date"
+        />
+
+        <BaseInput
+          id="end_date"
+          type="date"
+          v-model="end_date"
+          label="Enddatum"
+          required
+          :min="start_date"
+        />
       </div>
 
       <hr>
@@ -36,51 +52,75 @@
         <label>🏔️ Übernachtung in Hütten</label>
         <ul v-if="huts.length" class="hut-list">
           <li v-for="(hut, index) in huts" :key="index">
-            {{ hut.name }} <span v-if="hut.link" class="hut-link">({{ hut.link }})</span>
-            <button type="button" @click="removeHut(index)" class="btn-remove">&times;</button>
+            <span class="hut-info">
+              {{ hut.name }} <span v-if="hut.link" class="hut-link">({{ hut.link }})</span>
+            </span>
+            <BaseButton @click="removeHut(index)" variant="danger" size="small">&times;</BaseButton>
           </li>
         </ul>
         <div class="hut-form">
-          <input type="text" v-model="newHutName" placeholder="Name der Hütte" />
-          <input type="url" v-model="newHutLink" placeholder="Link (optional)" />
-          <button type="button" @click="addHut" class="btn-add-item">Hütte hinzufügen</button>
+          <BaseInput
+            id="hut_name"
+            type="text"
+            v-model="newHutName"
+            placeholder="Name der Hütte"
+          />
+          <BaseInput
+            id="hut_link"
+            type="url"
+            v-model="newHutLink"
+            placeholder="Link (optional)"
+          />
+          <BaseButton @click="addHut" variant="secondary">Hütte hinzufügen</BaseButton>
         </div>
       </div>
 
       <!-- Show country dropdown only for surf trips -->
-      <div v-if="activityType === 'SURFING'" class="form-group">
-        <label for="country">🌍 Land *</label>
+      <div v-if="activityType === 'SURFING'">
         <div v-if="countriesLoading">Lade Länder...</div>
-        <select v-else id="country" v-model="country" required class="country-select">
+        <BaseInput
+          v-else
+          id="country"
+          type="select"
+          v-model="country"
+          label="🌍 Land"
+          required
+        >
           <option value="">Land auswählen...</option>
-          
+
           <!-- Popular surf destinations -->
           <optgroup label="🏄‍♂️ Beliebte Surf-Ziele">
-            <option 
-              v-for="dest in popularSurfDestinations" 
-              :key="dest.code" 
+            <option
+              v-for="dest in popularSurfDestinations"
+              :key="dest.code"
               :value="dest.code"
             >
               {{ dest.display }}
             </option>
           </optgroup>
-          
+
           <!-- All other countries -->
           <optgroup label="🌍 Alle Länder" v-if="allCountries.length">
-            <option 
-              v-for="country_option in allCountries" 
-              :key="country_option.code" 
+            <option
+              v-for="country_option in allCountries"
+              :key="country_option.code"
               :value="country_option.code"
             >
               {{ country_option.display }}
             </option>
           </optgroup>
-        </select>
+        </BaseInput>
       </div>
 
-      <button type="submit" :disabled="isSubmitting">
+      <BaseButton
+        type="submit"
+        variant="primary"
+        size="large"
+        :disabled="isSubmitting"
+        full-width
+      >
         {{ isSubmitting ? 'Speichere...' : 'Trip speichern' }}
-      </button>
+      </BaseButton>
       <p v-if="error" class="error">{{ error }}</p>
     </form>
   </div>
@@ -92,6 +132,8 @@ import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import ParticipantSelector from './ParticipantSelector.vue';
 import { useTabAwareNavigation } from '../utils/navigation.js';
+import BaseButton from './base/BaseButton.vue';
+import BaseInput from './base/BaseInput.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -227,46 +269,103 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.trip-form { display: flex; flex-direction: column; gap: 1.5rem; max-width: 600px; margin: 2rem auto; }
-.form-group { display: flex; flex-direction: column; }
-.form-group-row { display: flex; gap: 1rem; }
-.form-group-row .form-group { flex: 1; }
-label { margin-bottom: 0.5rem; font-weight: bold; }
-input, textarea { padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-.hut-list { list-style: none; padding: 0; margin-bottom: 1rem; }
-.hut-list li { display: flex; justify-content: space-between; align-items: center; background: #f1f1f1; padding: 0.5rem 1rem; border-radius: 4px; margin-bottom: 0.5rem; }
-.hut-link { color: #555; font-style: italic; font-size: 0.9rem; }
-.btn-remove { background: #e74c3c; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; line-height: 1; cursor: pointer; font-weight: bold; }
-.hut-form { display: flex; gap: 0.5rem; }
-.hut-form input { flex-grow: 1; }
-.btn-add-item { padding: 0.8rem; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; }
-button[type="submit"] { padding: 1rem; background-color: #42b983; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
-button:disabled { background-color: #ccc; cursor: not-allowed; }
-.error { color: red; }
-
-/* Country dropdown styles */
-.country-select {
-  padding: 0.8rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 1rem;
-  background: white;
-  min-width: 100%;
+h1 {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-6);
+  color: var(--color-text-primary);
+  font-size: var(--text-2xl);
 }
 
-.country-select:focus {
-  outline: none;
-  border-color: #20b2aa;
-  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+.trip-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 600px;
+  margin: var(--space-8) auto;
 }
 
-.country-select optgroup {
-  font-weight: bold;
-  color: #333;
+.form-group-row {
+  display: flex;
+  gap: var(--space-4);
 }
 
-.country-select option {
-  font-weight: normal;
-  padding: 0.5rem;
+.form-group-row > * {
+  flex: 1;
+}
+
+.form-group label {
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border-light);
+  margin: var(--space-4) 0;
+}
+
+.hut-list {
+  list-style: none;
+  padding: 0;
+  margin-bottom: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.hut-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-bg-secondary);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+}
+
+.hut-info {
+  flex: 1;
+}
+
+.hut-link {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  font-size: var(--text-sm);
+  margin-left: var(--space-2);
+}
+
+.hut-form {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+
+.hut-form > :first-child {
+  flex: 2;
+}
+
+.hut-form > :nth-child(2) {
+  flex: 2;
+}
+
+.error {
+  color: var(--color-error);
+  text-align: center;
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* Mobile: Stack hut inputs vertically for clarity */
+@media (max-width: 768px) {
+  .hut-form {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0; /* Remove gap, BaseInput has its own margin-bottom */
+  }
+
+  .hut-form > * {
+    flex: 1 !important;
+  }
 }
 </style>
