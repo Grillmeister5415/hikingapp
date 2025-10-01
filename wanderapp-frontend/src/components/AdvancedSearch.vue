@@ -5,66 +5,80 @@
         <!-- Location Filters -->
         <div class="filter-group">
           <label>Surf Spot:</label>
-          <input
+          <BaseInput
+            id="surf-spot"
             v-model="filters.surf_spot"
             type="text"
             placeholder="e.g. Pipeline, Mavericks"
-            class="filter-input"
           />
         </div>
 
         <div class="filter-group">
           <label>Country:</label>
-          <select v-model="filters.country_code" class="filter-select">
+          <BaseInput
+            id="country-code"
+            v-model="filters.country_code"
+            type="select"
+          >
             <option value="">All Countries</option>
             <option v-for="country in countries" :key="country.code" :value="country.code">
               {{ country.name }}
             </option>
-          </select>
+          </BaseInput>
         </div>
 
         <!-- Wave Conditions -->
         <div class="filter-group">
           <label>Wave Height (m):</label>
           <div class="range-inputs">
-            <input
+            <BaseInput
+              id="wave-height-min"
               v-model="filters.wave_height_min"
               type="number"
-              placeholder="Min"
-              step="0.5"
-              class="filter-input small"
+              placeholder="0 m"
+              :step="0.5"
             />
             <span>to</span>
-            <input
+            <BaseInput
+              id="wave-height-max"
               v-model="filters.wave_height_max"
               type="number"
-              placeholder="Max"
-              step="0.5"
-              class="filter-input small"
+              placeholder="∞"
+              :step="0.5"
             />
           </div>
         </div>
 
         <div class="filter-group">
           <label>Wave Quality (1-5):</label>
-          <input
-            v-model="filters.wave_quality_min"
-            type="number"
-            min="1"
-            max="5"
-            placeholder="Min quality"
-            class="filter-input"
-          />
+          <div class="range-inputs">
+            <BaseInput
+              id="wave-quality-min"
+              v-model="filters.wave_quality_min"
+              type="number"
+              :min="1"
+              :max="5"
+              placeholder="1 ★"
+            />
+            <span>to</span>
+            <BaseInput
+              id="wave-quality-max"
+              v-model="filters.wave_quality_max"
+              type="number"
+              :min="1"
+              :max="5"
+              placeholder="5 ★"
+            />
+          </div>
         </div>
 
         <!-- Equipment -->
         <div class="filter-group">
           <label>Surfboard:</label>
-          <input
+          <FilterSurfboardSelector
+            id="surfboard-type"
             v-model="filters.surfboard_type"
-            type="text"
             placeholder="e.g. Shortboard, Longboard"
-            class="filter-input"
           />
         </div>
 
@@ -72,31 +86,35 @@
         <div class="filter-group">
           <label>Water Temp (°C):</label>
           <div class="range-inputs">
-            <input
+            <BaseInput
+              id="water-temp-min"
               v-model="filters.water_temp_min"
               type="number"
-              placeholder="Min"
-              class="filter-input small"
+              placeholder="0°C"
             />
             <span>to</span>
-            <input
+            <BaseInput
+              id="water-temp-max"
               v-model="filters.water_temp_max"
               type="number"
-              placeholder="Max"
-              class="filter-input small"
+              placeholder="∞"
             />
           </div>
         </div>
 
         <div class="filter-group">
           <label>Tide Stage:</label>
-          <select v-model="filters.tide_stage" class="filter-select">
+          <BaseInput
+            id="tide-stage"
+            v-model="filters.tide_stage"
+            type="select"
+          >
             <option value="">All Tides</option>
             <option value="LOW">Low Tide</option>
             <option value="MID_INCOMING">Mid Incoming</option>
             <option value="HIGH">High Tide</option>
             <option value="MID_OUTGOING">Mid Outgoing</option>
-          </select>
+          </BaseInput>
         </div>
       </div>
 
@@ -112,6 +130,8 @@
 import { ref, onMounted } from 'vue';
 import api from '../api';
 import BaseButton from './base/BaseButton.vue';
+import BaseInput from './base/BaseInput.vue';
+import FilterSurfboardSelector from './FilterSurfboardSelector.vue';
 
 const props = defineProps({
   showAdvancedFilters: {
@@ -126,6 +146,7 @@ const filters = ref({
   wave_height_min: '',
   wave_height_max: '',
   wave_quality_min: '',
+  wave_quality_max: '',
   water_temp_min: '',
   water_temp_max: '',
   tide_stage: '',
@@ -174,7 +195,11 @@ const applyFilters = () => {
 
   Object.keys(filters.value).forEach(key => {
     if (filters.value[key] !== '' && filters.value[key] !== null) {
-      activeFilters[key] = filters.value[key];
+      // Convert numeric filter values to numbers
+      const value = filters.value[key];
+      activeFilters[key] = (typeof value === 'string' && !isNaN(value) && value !== '')
+        ? Number(value)
+        : value;
     }
   });
 
@@ -195,17 +220,19 @@ onMounted(() => {
 
 <style scoped>
 .advanced-search {
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-sm);
 }
 
 .filter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 @media (min-width: 1200px) {
@@ -218,51 +245,37 @@ onMounted(() => {
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .filter-group label {
-  font-weight: 500;
-  color: #2c3e50;
-  font-size: 0.9rem;
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
 }
 
-.filter-input, .filter-select {
-  padding: 0.6rem;
-  border-radius: 6px;
-  border: 1px solid #ced4da;
-  font-size: 0.9rem;
-  width: 100%;
-  box-sizing: border-box;
-  background-color: white;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  min-height: 44px;
+/* Regular filter input wrappers (not in ranges) */
+.filter-group > .input-wrapper {
+  margin-bottom: 0; /* Override BaseInput default margin */
 }
 
-.filter-input:focus, .filter-select:focus {
-  outline: none;
-  border-color: #42b983;
-  box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.1);
-}
-
-.filter-select {
-  cursor: pointer;
-}
-
-.filter-input.small {
+/* Range input wrappers */
+.range-inputs .input-wrapper {
   flex: 1;
-  min-width: 70px;
+  min-width: 120px;
+  margin-bottom: 0; /* Override BaseInput default margin */
 }
 
 .range-inputs {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .range-inputs span {
-  color: #6c757d;
-  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
   white-space: nowrap;
 }
 
@@ -275,80 +288,77 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .advanced-search {
-    padding: 0.75rem;
-    gap: 0.5rem;
-    margin: 0 0.5rem 1rem 0.5rem;
+    padding: var(--space-4);
+    gap: var(--space-2);
+    margin: 0 0.5rem var(--space-4) 0.5rem;
   }
 
   .filter-grid {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
+    gap: var(--space-4);
   }
 
   .filter-group {
-    gap: 0.25rem;
+    gap: var(--space-2);
   }
 
   .filter-group label {
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     margin: 0;
   }
 
-  .filter-input, .filter-select {
-    padding: 0.6rem 0.8rem;
-    font-size: 0.9rem;
-    border-radius: 8px;
-  }
-
+  /* Mobile input wrappers */
   .range-inputs {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    gap: 0.5rem;
+    gap: var(--space-2);
     align-items: center;
   }
 
-  .range-inputs input {
-    padding: 0.5rem;
-    font-size: 0.9rem;
+  .range-inputs .input-wrapper {
+    margin-bottom: 0;
   }
 
   .range-inputs span {
     text-align: center;
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
   }
 
   .filter-actions {
-    margin-top: 0.5rem;
+    margin-top: var(--space-2);
   }
 }
 
 @media (max-width: 480px) {
   .advanced-search {
-    padding: 0.75rem;
-    margin: 0 0.5rem 1rem 0.5rem;
+    padding: var(--space-4);
+    margin: 0 0.5rem var(--space-4) 0.5rem;
   }
 
   .filter-grid {
-    gap: 0.5rem;
+    gap: var(--space-2);
   }
 
   .range-inputs {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
+    grid-template-columns: 1fr auto 1fr;
+    gap: var(--space-2);
   }
 
   .range-inputs span {
-    display: none; /* Hide "to" text on mobile - structure is clear without it */
+    /* Keep "to" text visible for clarity */
+    text-align: center;
+    font-size: var(--text-xs);
+    font-weight: var(--font-medium);
   }
 
-  .range-inputs input::placeholder {
+  .range-inputs .input-field::placeholder {
     font-weight: var(--font-medium);
   }
 
   .filter-actions {
     flex-direction: column;
     gap: var(--space-2);
-    margin-top: 0.75rem;
+    margin-top: var(--space-4);
   }
 
   .filter-actions > * {

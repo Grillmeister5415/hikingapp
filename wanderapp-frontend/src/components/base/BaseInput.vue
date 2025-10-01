@@ -162,6 +162,7 @@ const handleChange = (event) => {
   border-radius: var(--radius-lg);
   transition: all var(--transition-fast);
   width: 100%;
+  box-sizing: border-box;
 }
 
 .input-field:focus {
@@ -227,6 +228,10 @@ select.input-field {
 
   input[type="date"].input-field {
     font-size: 16px; /* Prevent iOS auto-zoom */
+    min-width: 0; /* Allow shrinking below content size */
+    max-width: 100%; /* Constrain to container */
+    -webkit-appearance: none; /* Remove iOS default styling */
+    min-height: 44px; /* Ensure consistent height on iOS (empty or filled) */
   }
 }
 </style>

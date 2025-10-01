@@ -9,11 +9,11 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.db.models import Sum, Count, Value, FloatField, DurationField, Q, Case, When, Avg, Min, Max, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from datetime import timedelta
-from .models import Trip, Stage, Comment, TrackPoint, Hut, User, Photo
+from .models import Trip, Stage, Comment, TrackPoint, Hut, User, Photo, Surfboard
 from django_countries import countries
 
 # WICHTIG: Die korrekten Serializer für Liste/Detail importieren
-from .serializers import TripListSerializer, TripDetailSerializer, StageSerializer, CommentSerializer, HutSerializer, UserSerializer, PartnerStatSerializer, PhotoSerializer
+from .serializers import TripListSerializer, TripDetailSerializer, StageSerializer, CommentSerializer, HutSerializer, UserSerializer, PartnerStatSerializer, PhotoSerializer, SurfboardSerializer
 from .pagination import StandardResultsSetPagination # Unser Paginierungs-Modul
 from .permissions import IsCreatorOrReadOnly, IsAuthorOrStageCreatorOrAdmin
 from .filters import TripFilter
@@ -115,6 +115,18 @@ class HutViewSet(viewsets.ModelViewSet):
     queryset = Hut.objects.all()
     serializer_class = HutSerializer
     permission_classes = [IsAuthenticated]
+
+class SurfboardViewSet(viewsets.ModelViewSet):
+    serializer_class = SurfboardSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Users can only see their own surfboards
+        return Surfboard.objects.filter(owner=self.request.user)
+
+    def perform_create(self, serializer):
+        # Auto-assign owner to current user
+        serializer.save(owner=self.request.user)
 
 class PhotoViewSet(viewsets.ModelViewSet):
     queryset = Photo.objects.all()
@@ -460,7 +472,7 @@ def search_suggestions(request):
     # Search participant usernames
     participants = User.objects.filter(
         username__icontains=query,
-        trip_participants__activity_type='SURFING'
+        participated_trips__activity_type='SURFING'
     ).values_list('username', flat=True).distinct()[:3]
 
     for participant in participants:

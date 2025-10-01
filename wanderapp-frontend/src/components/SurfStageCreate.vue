@@ -80,13 +80,14 @@
           </BaseInput>
         </div>
 
-        <BaseInput
-          id="surfboard_used"
-          type="text"
-          v-model="surfboard_used"
-          label="Verwendetes Surfbrett"
-          placeholder="z.B. 6'2 Shortboard, 9'0 Longboard"
-        />
+        <div class="input-wrapper">
+          <label for="surfboard-selector" class="input-label">Verwendetes Surfbrett</label>
+          <SurfboardSelector
+            id="surfboard-selector"
+            v-model="surfboard_used"
+            placeholder="z.B. 6'2 Shortboard, 9'0 Longboard"
+          />
+        </div>
 
         <div class="form-row">
           <BaseInput
@@ -211,6 +212,7 @@ import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import BaseButton from './base/BaseButton.vue';
 import BaseInput from './base/BaseInput.vue';
+import SurfboardSelector from './SurfboardSelector.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -327,6 +329,20 @@ h1 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
+}
+
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.input-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+  display: block;
 }
 
 .surf-fields {

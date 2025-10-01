@@ -3,11 +3,11 @@
     <div class="header">
       <h1>Meine Trips</h1>
       <div class="controls">
-        <BaseButton tag="router-link" to="/dashboard" variant="secondary">Dashboard</BaseButton>
-        <BaseButton tag="router-link" :to="getAddTripRoute()" variant="primary">
+        <BaseButton tag="router-link" to="/dashboard" variant="secondary" size="small">Dashboard</BaseButton>
+        <BaseButton tag="router-link" :to="getAddTripRoute()" variant="primary" size="small">
           {{ getAddTripLabel() }}
         </BaseButton>
-        <BaseButton @click="logout" variant="secondary">Logout</BaseButton>
+        <BaseButton @click="logout" variant="secondary" size="small">Logout</BaseButton>
       </div>
     </div>
 
@@ -40,30 +40,48 @@
 
     <!-- Basic Search Bar -->
     <div class="filter-bar">
-      <input type="text" v-model="filters.search" placeholder="Suche nach Name, Ort..." class="search-input" />
+      <BaseInput
+        id="search-filter"
+        type="text"
+        v-model="filters.search"
+        placeholder="Suche nach Name, Ort..."
+      />
       <div class="filter-group">
-        <label>Teilnehmer:</label>
-        <MultiSelectDropdown
-          :options="allUsers"
+        <FilterParticipantSelector
           v-model="filters.participants"
-          placeholder="Alle Teilnehmer"
         />
       </div>
       <div class="filter-group">
         <label>Von:</label>
-        <input type="date" v-model="filters.from_date" />
+        <BaseInput
+          id="from-date-filter"
+          type="date"
+          v-model="filters.from_date"
+        />
       </div>
       <div class="filter-group">
         <label>Bis:</label>
-        <input type="date" v-model="filters.to_date" />
+        <BaseInput
+          id="to-date-filter"
+          type="date"
+          v-model="filters.to_date"
+        />
       </div>
       <BaseButton
         v-if="activeCategory === 'SURFING' || activeCategory === 'HIKING'"
         @click="showAdvancedFilters = !showAdvancedFilters"
-        :variant="showAdvancedFilters ? 'primary' : 'ghost'"
+        :variant="showAdvancedFilters || activeAdvancedFiltersCount > 0 ? 'primary' : 'ghost'"
         size="small"
       >
         {{ showAdvancedFilters ? 'Filter ausblenden' : 'Erweiterte Filter' }}
+        <BaseBadge
+          v-if="activeAdvancedFiltersCount > 0 && !showAdvancedFilters"
+          variant="primary"
+          size="small"
+          style="margin-left: var(--space-2);"
+        >
+          {{ activeAdvancedFiltersCount }}
+        </BaseBadge>
       </BaseButton>
       <BaseButton v-if="hasActiveFilters" @click="clearFilters" variant="ghost" size="small">Filter zurücksetzen</BaseButton>
     </div>
@@ -195,11 +213,12 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import { currentUser, setCurrentTab } from '../store';
-import MultiSelectDropdown from './MultiSelectDropdown.vue';
+import FilterParticipantSelector from './FilterParticipantSelector.vue';
 import AdvancedSearch from './AdvancedSearch.vue';
 import HikingAdvancedSearch from './HikingAdvancedSearch.vue';
 import BaseButton from './base/BaseButton.vue';
 import BaseBadge from './base/BaseBadge.vue';
+import BaseInput from './base/BaseInput.vue';
 
 // Accept props for default category
 const props = defineProps({
@@ -245,6 +264,7 @@ const filters = ref({
 });
 
 const showAdvancedFilters = ref(false);
+const activeAdvancedFilters = ref({});
 
 const fetchTrips = async (isInfiniteScroll = false) => {
   try {
@@ -261,7 +281,7 @@ const fetchTrips = async (isInfiniteScroll = false) => {
     // --- Add filter parameters ---
     if (filters.value.search) params.append('search', filters.value.search);
     if (filters.value.participants.length > 0) {
-      filters.value.participants.forEach(id => params.append('participants', id));
+      filters.value.participants.forEach(participant => params.append('participants', participant.id));
     }
     if (filters.value.from_date) params.append('from_date', filters.value.from_date);
     if (filters.value.to_date) params.append('to_date', filters.value.to_date);
@@ -361,13 +381,16 @@ const cleanupIntersectionObserver = () => {
 };
 
 const handleAdvancedSearch = (advancedFilters) => {
+  // Store active advanced filters for badge display
+  activeAdvancedFilters.value = advancedFilters;
+
   // Merge advanced filters with existing filters
   const combinedParams = new URLSearchParams();
 
   // Add basic filters
   if (filters.value.search) combinedParams.append('search', filters.value.search);
   if (filters.value.participants.length > 0) {
-    filters.value.participants.forEach(id => combinedParams.append('participants', id));
+    filters.value.participants.forEach(participant => combinedParams.append('participants', participant.id));
   }
   if (filters.value.from_date) combinedParams.append('from_date', filters.value.from_date);
   if (filters.value.to_date) combinedParams.append('to_date', filters.value.to_date);
@@ -389,12 +412,14 @@ const handleAdvancedSearch = (advancedFilters) => {
 };
 
 const handleHikingAdvancedSearch = (advancedFilters) => {
+  // Store active advanced filters for badge display
+  activeAdvancedFilters.value = advancedFilters;
   // Merge advanced hiking filters with existing filters
   const combinedParams = new URLSearchParams();
   // Add basic filters
   if (filters.value.search) combinedParams.append('search', filters.value.search);
   if (filters.value.participants.length > 0) {
-    filters.value.participants.forEach(id => combinedParams.append('participants', id));
+    filters.value.participants.forEach(participant => combinedParams.append('participants', participant.id));
   }
   if (filters.value.from_date) combinedParams.append('from_date', filters.value.from_date);
   if (filters.value.to_date) combinedParams.append('to_date', filters.value.to_date);
@@ -453,6 +478,7 @@ const setActiveCategory = (category) => {
   } else {
     // Fallback: if we're already on the correct route, refresh manually
     activeCategory.value = category;
+    activeAdvancedFilters.value = {}; // Clear advanced filters when category changes
     setCurrentTab(category);
     currentPage.value = 1;
     allTrips.value = []; // Clear accumulated trips for new category
@@ -508,6 +534,7 @@ watch(route, async (newRoute) => {
   const newCategory = getCategoryFromRoute(newRoute.path);
   if (newCategory !== activeCategory.value) {
     activeCategory.value = newCategory;
+    activeAdvancedFilters.value = {}; // Clear advanced filters when category changes
     setCurrentTab(newCategory);
     currentPage.value = 1;
     allTrips.value = []; // Clear accumulated trips for new category
@@ -546,6 +573,7 @@ const clearFilters = () => {
     from_date: '',
     to_date: ''
   };
+  activeAdvancedFilters.value = {};
 };
 
 // Computed property to check if any filters are active
@@ -556,6 +584,13 @@ const hasActiveFilters = computed(() => {
     filters.value.from_date !== '' ||
     filters.value.to_date !== ''
   );
+});
+
+// Computed property to count active advanced filters
+const activeAdvancedFiltersCount = computed(() => {
+  return Object.keys(activeAdvancedFilters.value).filter(
+    key => activeAdvancedFilters.value[key] !== '' && activeAdvancedFilters.value[key] !== null
+  ).length;
 });
 
 const handleDeleteTrip = async (tripId) => {
@@ -717,16 +752,19 @@ const getCountryWithFlag = (trip) => {
   background-color: var(--color-bg-secondary);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-4);
-  align-items: center;
+  align-items: flex-start;
 }
 
-.search-input {
+/* Vertically center buttons in filter bar */
+.filter-bar > button {
+  align-self: center;
+}
+
+/* Search input (BaseInput) in filter bar */
+.filter-bar > .input-wrapper {
   flex-grow: 1;
-  padding: var(--space-3) var(--space-4);
-  font-size: var(--text-base);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-medium);
   min-width: 200px;
+  margin-bottom: 0; /* Override BaseInput default margin */
 }
 
 .filter-group {
@@ -735,14 +773,19 @@ const getCountryWithFlag = (trip) => {
   gap: var(--space-2);
 }
 
-.filter-group label {
-  font-weight: var(--font-medium);
+/* Force Von filter to start on new line */
+.filter-bar > .filter-group:nth-of-type(2) {
+  flex-basis: 100%;
 }
 
-.filter-group input[type="date"] {
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-medium);
+.filter-group label {
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+}
+
+/* Date inputs (BaseInput) in filter groups */
+.filter-group .input-wrapper {
+  margin-bottom: 0; /* Override BaseInput default margin */
   max-width: 160px;
 }
 
@@ -1022,12 +1065,16 @@ const getCountryWithFlag = (trip) => {
     align-items: stretch;
   }
 
-  .search-input {
+  /* Search input (BaseInput) on mobile */
+  .filter-bar > .input-wrapper {
     min-width: auto;
     width: 100%;
-    padding: 0.6rem 0.8rem;
-    font-size: 0.9rem;
     margin-bottom: 0;
+    box-sizing: border-box;
+  }
+
+  .filter-bar > .input-wrapper .input-field {
+    box-sizing: border-box;
   }
 
   .filter-group {
@@ -1039,9 +1086,12 @@ const getCountryWithFlag = (trip) => {
   }
 
   /* Override special layout - stack date filters vertically on mobile */
-  .filter-group:nth-of-type(3), .filter-group:nth-of-type(4) {
+  /* Note: counting .filter-group children only - participants is 1st, Von is 2nd, Bis is 3rd */
+  .filter-group:nth-of-type(2), .filter-group:nth-of-type(3) {
     display: flex;
     width: 100%;
+    flex: 0 0 100%; /* Explicitly force full width and prevent flex shrinking */
+    overflow: hidden; /* Only prevent overflow for date input groups */
   }
 
   .filter-group label {
@@ -1049,10 +1099,16 @@ const getCountryWithFlag = (trip) => {
     margin: 0;
   }
 
-  .filter-group input[type="date"] {
-    padding: 0.5rem;
-    font-size: 16px; /* Prevent iOS auto-zoom */
+  /* Date inputs (BaseInput) on mobile */
+  .filter-group .input-wrapper {
     width: 100%;
+    max-width: none;
+    margin-bottom: 0;
+    box-sizing: border-box;
+  }
+
+  .filter-group .input-field {
+    box-sizing: border-box;
   }
 
   .btn-clear {

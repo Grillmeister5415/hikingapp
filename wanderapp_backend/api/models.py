@@ -51,6 +51,33 @@ class Hut(models.Model):
     link = models.URLField(max_length=500, blank=True)
     def __str__(self): return self.name
 
+class Surfboard(models.Model):
+    BOARD_TYPE_CHOICES = [
+        ('SHORTBOARD', 'Shortboard'),
+        ('LONGBOARD', 'Longboard'),
+        ('FISH', 'Fish'),
+        ('FUNBOARD', 'Funboard'),
+        ('GUN', 'Gun'),
+        ('HYBRID', 'Hybrid'),
+        ('FOAMBOARD', 'Foamboard'),
+        ('OTHER', 'Other'),
+    ]
+
+    name = models.CharField(max_length=100, help_text="e.g. 6'2 Shortboard, 9'0 Longboard")
+    board_type = models.CharField(max_length=20, choices=BOARD_TYPE_CHOICES, default='SHORTBOARD')
+    length = models.CharField(max_length=20, blank=True, help_text="e.g. 6'2, 190cm")
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='surfboards')
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = [['owner', 'name']]
+
+    def __str__(self):
+        return f"{self.name} ({self.owner.username})"
+
 class Stage(models.Model):
     ACTIVITY_CHOICES = [
         ('HIKING', 'Hiking'),
@@ -100,7 +127,8 @@ class Stage(models.Model):
     # Surf-specific fields (all optional for backwards compatibility)
     surf_spot = models.CharField(max_length=200, blank=True, help_text="Name or description of surf spot")
     time_in_water = models.DurationField(null=True, blank=True, help_text="Time spent surfing")
-    surfboard_used = models.CharField(max_length=100, blank=True, help_text="Type/description of surfboard")
+    surfboard_used = models.CharField(max_length=100, blank=True, help_text="Type/description of surfboard (legacy text field)")
+    surfboard = models.ForeignKey(Surfboard, on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions', help_text="Surfboard used in this session")
     wave_height = models.FloatField(null=True, blank=True, help_text="Wave height in meters")
     wave_quality = models.IntegerField(
         null=True, blank=True, 

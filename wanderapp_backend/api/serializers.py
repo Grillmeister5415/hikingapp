@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.gis.geos import LineString, Point
-from .models import Trip, Stage, User, TrackPoint, Comment, Hut, Photo
+from .models import Trip, Stage, User, TrackPoint, Comment, Hut, Photo, Surfboard
 from datetime import timedelta
 
 # ===================================================================
@@ -41,6 +41,24 @@ class PhotoSerializer(serializers.ModelSerializer):
             'display_webp', 'thumbnail_webp'
         ]
         read_only_fields = ['creator']
+
+class SurfboardSerializer(serializers.ModelSerializer):
+    owner = UserSerializer(read_only=True)
+    owner_id = serializers.IntegerField(write_only=True, required=False)
+
+    class Meta:
+        model = Surfboard
+        fields = ['id', 'name', 'board_type', 'length', 'owner', 'owner_id', 'description', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+    def create(self, validated_data):
+        # Auto-assign owner to current user if not provided
+        if 'owner_id' not in validated_data:
+            validated_data['owner'] = self.context['request'].user
+        else:
+            owner_id = validated_data.pop('owner_id')
+            validated_data['owner_id'] = owner_id
+        return super().create(validated_data)
 
 class HutCreateSerializer(serializers.ModelSerializer):
     class Meta:

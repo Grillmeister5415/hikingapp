@@ -5,7 +5,7 @@
     <div v-else-if="trip">
       <div class="header">
         <h1>Trip bearbeiten</h1>
-        <BaseButton tag="router-link" :to="`/trip/${trip.id}`" variant="secondary">&larr; Abbrechen</BaseButton>
+        <BaseButton tag="router-link" :to="`/trip/${trip.id}`" variant="ghost" size="small">&larr; Abbrechen und zurück zum Trip</BaseButton>
       </div>
       <form @submit.prevent="handleSubmit" class="trip-form">
         <BaseInput

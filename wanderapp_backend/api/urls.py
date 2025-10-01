@@ -1,12 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import TripViewSet, StageViewSet, UserStatsView, CommentViewSet, HutViewSet, UserViewSet, DashboardDataView, PhotoViewSet, CountriesAPIView, search_suggestions, calculate_gpx_metrics
+from .views import TripViewSet, StageViewSet, UserStatsView, CommentViewSet, HutViewSet, UserViewSet, DashboardDataView, PhotoViewSet, SurfboardViewSet, CountriesAPIView, search_suggestions, calculate_gpx_metrics
 
 router = DefaultRouter()
 router.register(r'trips', TripViewSet, basename='trip')
 router.register(r'stages', StageViewSet, basename='stage')
 router.register(r'comments', CommentViewSet, basename='comment')
 router.register(r'huts', HutViewSet, basename='hut')
+router.register(r'surfboards', SurfboardViewSet, basename='surfboard')
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'photos', PhotoViewSet, basename='photo')
 

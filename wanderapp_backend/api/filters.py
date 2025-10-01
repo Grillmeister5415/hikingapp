@@ -29,6 +29,7 @@ class TripFilter(django_filters.FilterSet):
     wave_height_min = django_filters.NumberFilter(field_name='stages__wave_height', lookup_expr='gte', label="Min Wave Height (m)")
     wave_height_max = django_filters.NumberFilter(field_name='stages__wave_height', lookup_expr='lte', label="Max Wave Height (m)")
     wave_quality_min = django_filters.NumberFilter(field_name='stages__wave_quality', lookup_expr='gte', label="Min Wave Quality (1-5)")
+    wave_quality_max = django_filters.NumberFilter(field_name='stages__wave_quality', lookup_expr='lte', label="Max Wave Quality (1-5)")
     water_temp_min = django_filters.NumberFilter(field_name='stages__water_temperature', lookup_expr='gte', label="Min Water Temp (°C)")
     water_temp_max = django_filters.NumberFilter(field_name='stages__water_temperature', lookup_expr='lte', label="Max Water Temp (°C)")
     tide_stage = django_filters.ChoiceFilter(field_name='stages__tide_stage', choices=Stage.TIDE_STAGE_CHOICES, label="Tide Stage")
@@ -46,7 +47,7 @@ class TripFilter(django_filters.FilterSet):
         model = Trip
         fields = ['search', 'participants', 'from_date', 'to_date', 'activity_type', 'is_creator',
                  'surf_spot', 'surfboard_type', 'wave_height_min', 'wave_height_max',
-                 'wave_quality_min', 'water_temp_min', 'water_temp_max', 'tide_stage', 'country_code',
+                 'wave_quality_min', 'wave_quality_max', 'water_temp_min', 'water_temp_max', 'tide_stage', 'country_code',
                  'distance_min', 'distance_max', 'elevation_min', 'elevation_max', 'duration_min', 'duration_max']
 
     def filter_by_search(self, queryset, name, value):
