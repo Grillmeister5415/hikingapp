@@ -32,7 +32,6 @@
           @mousedown.prevent="selectSurfboard(board.value)"
           @mouseenter="highlightedIndex = index"
         >
-          <span class="board-icon">{{ board.label.charAt(0) }}</span>
           <span class="board-name">{{ board.value }}</span>
         </div>
 
