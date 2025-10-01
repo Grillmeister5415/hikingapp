@@ -462,7 +462,7 @@ def search_suggestions(request):
     for board in surfboards:
         suggestions.append({
             'type': 'surfboard',
-            'label': f'🏄‍♂️ {board}',
+            'label': board,
             'value': board,
             'category': 'Surfboards'
         })
