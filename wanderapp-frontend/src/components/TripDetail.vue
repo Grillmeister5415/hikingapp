@@ -194,8 +194,8 @@
 
         <!-- Additional Surf Details -->
         <div v-if="stage.activity_type === 'SURFING'" class="surf-details">
-          <div v-if="stage.surfboard_used" class="detail-item">
-            <strong>Surfboard:</strong> {{ stage.surfboard_used }}
+          <div v-if="stage.surfboard?.name || stage.surfboard_used" class="detail-item">
+            <strong>Surfboard:</strong> {{ stage.surfboard?.name || stage.surfboard_used }}
           </div>
           <div v-if="stage.waves_caught" class="detail-item">
             <strong>Waves caught:</strong> {{ stage.waves_caught }}

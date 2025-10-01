@@ -253,9 +253,9 @@ class UserStatsView(APIView):
         # Calculate most used surfboard
         most_used_board = None
         if surfing_stages.exists():
-            board_counts = surfing_stages.exclude(surfboard_used__isnull=True).exclude(surfboard_used__exact='').values('surfboard_used').annotate(count=Count('surfboard_used')).order_by('-count').first()
+            board_counts = surfing_stages.exclude(surfboard__isnull=True).values('surfboard__name').annotate(count=Count('surfboard')).order_by('-count').first()
             if board_counts:
-                most_used_board = board_counts['surfboard_used']
+                most_used_board = board_counts['surfboard__name']
         
         stats_data = {
             'username': user.username,
@@ -454,12 +454,10 @@ def search_suggestions(request):
                 'category': 'Countries'
             })
 
-    # Search surfboard types
-    surfboards = Stage.objects.filter(
-        surfboard_used__icontains=query,
-        activity_type='SURFING',
-        surfboard_used__isnull=False
-    ).exclude(surfboard_used__exact='').values_list('surfboard_used', flat=True).distinct()[:5]
+    # Search surfboards from Surfboard model
+    surfboards = Surfboard.objects.filter(
+        name__icontains=query
+    ).values_list('name', flat=True).distinct()[:5]
 
     for board in surfboards:
         suggestions.append({

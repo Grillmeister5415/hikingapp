@@ -85,7 +85,11 @@ class StageSerializer(serializers.ModelSerializer):
     participants_ids = serializers.PrimaryKeyRelatedField(
         many=True, write_only=True, queryset=User.objects.all(), source='participants', required=False
     )
-    photos = PhotoSerializer(many=True, read_only=True) 
+    photos = PhotoSerializer(many=True, read_only=True)
+    surfboard = SurfboardSerializer(read_only=True)
+    surfboard_id = serializers.PrimaryKeyRelatedField(
+        write_only=True, queryset=Surfboard.objects.all(), source='surfboard', required=False, allow_null=True
+    )
 
     class Meta:
         model = Stage
@@ -96,7 +100,7 @@ class StageSerializer(serializers.ModelSerializer):
             'calculated_length_km', 'calculated_elevation_gain', 'calculated_elevation_loss', 'calculated_duration',
             'external_link', 'track', 'track_points', 'comments', 'photos',
             # Surf-specific fields
-            'surf_spot', 'time_in_water', 'surfboard_used', 'wave_height', 'wave_quality', 
+            'surf_spot', 'time_in_water', 'surfboard_used', 'surfboard', 'surfboard_id', 'wave_height', 'wave_quality',
             'water_temperature', 'waves_caught', 'tide_stage', 'tide_movement',
             'swell_direction', 'wind_direction', 'wave_energy'
         ]
