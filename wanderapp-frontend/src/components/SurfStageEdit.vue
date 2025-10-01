@@ -270,29 +270,56 @@ const handleSubmit = async () => {
       timeInWaterToSend += ':00';
     }
 
+    // Handle surfboard - find existing or create new
+    let surfboardId = null;
+    if (stage.value.surfboard_used) {
+      try {
+        // Try to find existing surfboard by name
+        const surfboardsResponse = await api.get('/surfboards/');
+        const existingBoard = surfboardsResponse.data.find(
+          board => board.name.toLowerCase() === stage.value.surfboard_used.toLowerCase()
+        );
+
+        if (existingBoard) {
+          surfboardId = existingBoard.id;
+        } else {
+          // Create new surfboard
+          const newBoardResponse = await api.post('/surfboards/', {
+            name: stage.value.surfboard_used,
+            board_type: 'OTHER', // Default type, user can edit later in admin
+          });
+          surfboardId = newBoardResponse.data.id;
+        }
+      } catch (boardErr) {
+        console.error('Error handling surfboard:', boardErr);
+        // Continue without surfboard link if there's an error
+      }
+    }
+
     const payload = {
       name: stage.value.name,
       date: stage.value.date,
       description: stage.value.description,
       external_link: stage.value.external_link,
-      
+
       // Surf-specific fields
       surf_spot: stage.value.surf_spot,
       time_in_water: timeInWaterToSend,
-      surfboard_used: stage.value.surfboard_used,
+      surfboard_used: stage.value.surfboard_used, // Keep for backward compatibility
+      surfboard_id: surfboardId, // New FK field
       wave_height: stage.value.wave_height ? parseFloat(stage.value.wave_height) : null,
       wave_quality: stage.value.wave_quality ? parseInt(stage.value.wave_quality) : null,
       water_temperature: stage.value.water_temperature ? parseFloat(stage.value.water_temperature) : null,
       waves_caught: stage.value.waves_caught ? parseInt(stage.value.waves_caught) : null,
       tide_stage: stage.value.tide_stage,
       tide_movement: stage.value.tide_movement,
-      
+
       // Additional surf conditions
       swell_direction: stage.value.swell_direction,
       wind_direction: stage.value.wind_direction,
       wave_energy: stage.value.wave_energy ? parseFloat(stage.value.wave_energy) : null
     };
-    
+
     await api.patch(`/stages/${stageId.value}/`, payload);
     router.push(`/trip/${stage.value.trip}`);
   } catch (err) {

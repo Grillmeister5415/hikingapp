@@ -265,6 +265,32 @@ const handleSubmit = async () => {
       timeInWaterToSend += ':00';
     }
 
+    // Handle surfboard - find existing or create new
+    let surfboardId = null;
+    if (surfboard_used.value) {
+      try {
+        // Try to find existing surfboard by name
+        const surfboardsResponse = await api.get('/surfboards/');
+        const existingBoard = surfboardsResponse.data.find(
+          board => board.name.toLowerCase() === surfboard_used.value.toLowerCase()
+        );
+
+        if (existingBoard) {
+          surfboardId = existingBoard.id;
+        } else {
+          // Create new surfboard
+          const newBoardResponse = await api.post('/surfboards/', {
+            name: surfboard_used.value,
+            board_type: 'OTHER', // Default type, user can edit later in admin
+          });
+          surfboardId = newBoardResponse.data.id;
+        }
+      } catch (boardErr) {
+        console.error('Error handling surfboard:', boardErr);
+        // Continue without surfboard link if there's an error
+      }
+    }
+
     const payload = {
       name: name.value,
       date: date.value,
@@ -272,27 +298,28 @@ const handleSubmit = async () => {
       trip: parseInt(tripId.value),
       activity_type: 'SURFING',
       external_link: external_link.value,
-      
+
       // Surf-specific fields
       surf_spot: surf_spot.value,
       time_in_water: timeInWaterToSend,
-      surfboard_used: surfboard_used.value,
+      surfboard_used: surfboard_used.value, // Keep for backward compatibility
+      surfboard_id: surfboardId, // New FK field
       wave_height: wave_height.value ? parseFloat(wave_height.value) : null,
       wave_quality: wave_quality.value ? parseInt(wave_quality.value) : null,
       water_temperature: water_temperature.value ? parseFloat(water_temperature.value) : null,
       waves_caught: waves_caught.value ? parseInt(waves_caught.value) : null,
       tide_stage: tide_stage.value,
       tide_movement: tide_movement.value,
-      
+
       // Additional surf conditions
       swell_direction: swell_direction.value,
       wind_direction: wind_direction.value,
       wave_energy: wave_energy.value ? parseFloat(wave_energy.value) : null,
-      
+
       // No track points for surfing
       track_points: []
     };
-    
+
     await api.post('/stages/', payload);
     router.push(`/trip/${tripId.value}`);
   } catch (err) {
