@@ -5,10 +5,9 @@
         <!-- Location Filters -->
         <div class="filter-group">
           <label>Surf Spot:</label>
-          <BaseInput
+          <FilterSurfSpotSelector
             id="surf-spot"
             v-model="filters.surf_spot"
-            type="text"
             placeholder="e.g. Pipeline, Mavericks"
           />
         </div>
@@ -132,6 +131,7 @@ import api from '../api';
 import BaseButton from './base/BaseButton.vue';
 import BaseInput from './base/BaseInput.vue';
 import FilterSurfboardSelector from './FilterSurfboardSelector.vue';
+import FilterSurfSpotSelector from './FilterSurfSpotSelector.vue';
 
 const props = defineProps({
   showAdvancedFilters: {

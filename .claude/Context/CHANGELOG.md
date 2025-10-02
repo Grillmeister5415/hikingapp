@@ -38,9 +38,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `wanderapp_backend/api/admin.py` - Added SurfSpotAdmin with usage statistics
 - `wanderapp_backend/api/filters.py` - Updated surf_spot filter to use new model
 - `wanderapp_backend/api/urls.py` - Registered surfspots route
-- `wanderapp-frontend/src/components/SurfSpotSelector.vue` - NEW component
+- `wanderapp-frontend/src/components/SurfSpotSelector.vue` - NEW component (for forms)
+- `wanderapp-frontend/src/components/FilterSurfSpotSelector.vue` - NEW component (for filters)
 - `wanderapp-frontend/src/components/SurfStageCreate.vue` - Integrated surf spot management
 - `wanderapp-frontend/src/components/SurfStageEdit.vue` - Integrated surf spot management
+- `wanderapp-frontend/src/components/AdvancedSearch.vue` - Integrated FilterSurfSpotSelector
 
 **Interactive Elevation Profile for Hiking Trips**
 - Added new `ElevationProfile.vue` component with Chart.js integration
