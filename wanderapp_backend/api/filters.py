@@ -24,7 +24,7 @@ class TripFilter(django_filters.FilterSet):
     )
 
     # Surf-specific filters
-    surf_spot = django_filters.CharFilter(field_name='stages__surf_spot', lookup_expr='icontains', label="Surf Spot")
+    surf_spot = django_filters.CharFilter(field_name='stages__surf_spot_obj__name', lookup_expr='icontains', label="Surf Spot")
     surfboard_type = django_filters.CharFilter(field_name='stages__surfboard__name', lookup_expr='icontains', label="Surfboard Type")
     wave_height_min = django_filters.NumberFilter(field_name='stages__wave_height', lookup_expr='gte', label="Min Wave Height (m)")
     wave_height_max = django_filters.NumberFilter(field_name='stages__wave_height', lookup_expr='lte', label="Max Wave Height (m)")
@@ -55,7 +55,8 @@ class TripFilter(django_filters.FilterSet):
             models.Q(name__icontains=value) |
             models.Q(description__icontains=value) |
             models.Q(country__icontains=value) |  # Search country field
-            models.Q(stages__surf_spot__icontains=value) |  # Search surf spots
+            models.Q(stages__surf_spot__icontains=value) |  # Search surf spots (legacy text field)
+            models.Q(stages__surf_spot_obj__name__icontains=value) |  # Search surf spots (new model)
             models.Q(stages__surfboard__name__icontains=value) |  # Search surfboard names
             models.Q(stages__name__icontains=value) |  # Search stage names
             models.Q(stages__description__icontains=value) |  # Search stage descriptions

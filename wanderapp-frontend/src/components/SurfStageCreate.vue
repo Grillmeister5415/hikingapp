@@ -37,14 +37,14 @@
       <div class="surf-fields">
         <h3>🏄‍♂️ Surf Details</h3>
 
-        <BaseInput
-          id="surf_spot"
-          type="text"
-          v-model="surf_spot"
-          label="Surf Spot"
-          required
-          placeholder="Name des Surf Spots"
-        />
+        <div class="input-wrapper">
+          <label for="surfspot-selector" class="input-label">Surf Spot</label>
+          <SurfSpotSelector
+            id="surfspot-selector"
+            v-model="surf_spot"
+            placeholder="z.B. Pipeline, Malibu, Supertubes"
+          />
+        </div>
 
         <BaseInput
           id="time_in_water"
@@ -213,6 +213,7 @@ import api from '../api';
 import BaseButton from './base/BaseButton.vue';
 import BaseInput from './base/BaseInput.vue';
 import SurfboardSelector from './SurfboardSelector.vue';
+import SurfSpotSelector from './SurfSpotSelector.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -265,6 +266,31 @@ const handleSubmit = async () => {
       timeInWaterToSend += ':00';
     }
 
+    // Handle surf spot - find existing or create new
+    let surfSpotId = null;
+    if (surf_spot.value) {
+      try {
+        // Try to find existing surf spot by name
+        const surfSpotsResponse = await api.get('/surfspots/');
+        const existingSpot = surfSpotsResponse.data.find(
+          spot => spot.name.toLowerCase() === surf_spot.value.toLowerCase()
+        );
+
+        if (existingSpot) {
+          surfSpotId = existingSpot.id;
+        } else {
+          // Create new surf spot
+          const newSpotResponse = await api.post('/surfspots/', {
+            name: surf_spot.value,
+          });
+          surfSpotId = newSpotResponse.data.id;
+        }
+      } catch (spotErr) {
+        console.error('Error handling surf spot:', spotErr);
+        // Continue without surf spot link if there's an error
+      }
+    }
+
     // Handle surfboard - find existing or create new
     let surfboardId = null;
     if (surfboard_used.value) {
@@ -300,7 +326,8 @@ const handleSubmit = async () => {
       external_link: external_link.value,
 
       // Surf-specific fields
-      surf_spot: surf_spot.value,
+      surf_spot: surf_spot.value, // Keep for backward compatibility
+      surf_spot_id: surfSpotId, // New FK field
       time_in_water: timeInWaterToSend,
       surfboard_used: surfboard_used.value, // Keep for backward compatibility
       surfboard_id: surfboardId, // New FK field

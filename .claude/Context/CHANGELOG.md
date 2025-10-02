@@ -6,7 +6,71 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased] - 2025-09-30
+## [Unreleased] - 2025-10-02
+
+### Added
+
+**Surf Spot Management System**
+- Added new `SurfSpot` model with same structure as `Surfboard` model
+- Surf spots are now managed as proper database entities with ownership, autocomplete, and reusability
+- Each user can create and manage their own surf spots (unique per user)
+- Surf spots are automatically created when entering a new name in surf session forms
+- `SurfSpotSelector.vue` component provides autocomplete functionality matching `SurfboardSelector.vue`
+- Surf spot filtering now uses the new model relationship instead of text field search
+- Maintains backward compatibility with legacy text field (`surf_spot`)
+- **Technical Details:**
+  - Backend: New `SurfSpot` model with owner FK, timestamps, unique_together constraint
+  - Backend: `SurfSpotViewSet` with user-scoped queryset
+  - Backend: `SurfSpotSerializer` with auto-owner assignment
+  - Backend: Stage model updated with `surf_spot_obj` FK field
+  - Backend: Admin interface with autocomplete and session count statistics
+  - Backend: Filters updated to use `stages__surf_spot_obj__name` relationship
+  - Backend: Search suggestions endpoint includes surf spots from new model
+  - Frontend: `SurfSpotSelector.vue` with autocomplete, keyboard navigation, "add new" option
+  - Frontend: `SurfStageCreate.vue` and `SurfStageEdit.vue` updated to handle surf spots same as surfboards
+  - API endpoint: `/api/surfspots/` for CRUD operations
+  - Migration: `0020_alter_stage_surf_spot_alter_stage_tide_movement_and_more.py`
+
+**Components Modified:**
+- `wanderapp_backend/api/models.py` - Added SurfSpot model, updated Stage model
+- `wanderapp_backend/api/serializers.py` - Added SurfSpotSerializer, updated StageSerializer
+- `wanderapp_backend/api/views.py` - Added SurfSpotViewSet, updated search_suggestions
+- `wanderapp_backend/api/admin.py` - Added SurfSpotAdmin with usage statistics
+- `wanderapp_backend/api/filters.py` - Updated surf_spot filter to use new model
+- `wanderapp_backend/api/urls.py` - Registered surfspots route
+- `wanderapp-frontend/src/components/SurfSpotSelector.vue` - NEW component
+- `wanderapp-frontend/src/components/SurfStageCreate.vue` - Integrated surf spot management
+- `wanderapp-frontend/src/components/SurfStageEdit.vue` - Integrated surf spot management
+
+**Interactive Elevation Profile for Hiking Trips**
+- Added new `ElevationProfile.vue` component with Chart.js integration
+- Displays altitude profile below hiking maps showing elevation changes along the route
+- Interactive hover feature: hovering over the elevation profile shows a marker on the map at the corresponding position
+- Profile automatically hidden when GPX track has no elevation data
+- Responsive design: 400px height on desktop, 250px on mobile
+- Uses design system tokens for consistent styling (`--color-hiking`, `--color-neutral-*`, `--space-*`)
+- Backend serializer enhanced to include elevation and cumulative distance arrays in track data
+- Smooth bezier curves for natural elevation profile visualization
+- Gradient fill under the profile line for better visual appeal
+- **Technical Details:**
+  - Backend: Modified `StageSerializer.get_track()` to return `elevations[]` and `distances[]` arrays
+  - Frontend: Chart.js v4.5.0 with vue-chartjs v5.3.2 wrapper
+  - Map integration: Mapbox marker dynamically positioned based on profile hover
+  - Distance calculation: Haversine formula for accurate GPS-based cumulative distances
+
+**Components Modified:**
+- `wanderapp_backend/api/serializers.py` - Enhanced track serialization
+- `wanderapp-frontend/src/components/ElevationProfile.vue` - NEW component
+- `wanderapp-frontend/src/components/HikeMap.vue` - Added position marker functionality
+- `wanderapp-frontend/src/components/TripDetail.vue` - Integrated elevation profile
+
+**Dependencies Added:**
+- `chart.js@^4.5.0`
+- `vue-chartjs@^5.3.2`
+
+---
+
+## [Previous Updates] - 2025-09-30
 
 ### 📱 Mobile UX Improvements - Critical Fixes
 

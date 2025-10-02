@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.gis.geos import LineString, Point
-from .models import Trip, Stage, User, TrackPoint, Comment, Hut, Photo, Surfboard
+from .models import Trip, Stage, User, TrackPoint, Comment, Hut, Photo, Surfboard, SurfSpot
 from datetime import timedelta
 
 # ===================================================================
@@ -60,6 +60,24 @@ class SurfboardSerializer(serializers.ModelSerializer):
             validated_data['owner_id'] = owner_id
         return super().create(validated_data)
 
+class SurfSpotSerializer(serializers.ModelSerializer):
+    owner = UserSerializer(read_only=True)
+    owner_id = serializers.IntegerField(write_only=True, required=False)
+
+    class Meta:
+        model = SurfSpot
+        fields = ['id', 'name', 'owner', 'owner_id', 'description', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+    def create(self, validated_data):
+        # Auto-assign owner to current user if not provided
+        if 'owner_id' not in validated_data:
+            validated_data['owner'] = self.context['request'].user
+        else:
+            owner_id = validated_data.pop('owner_id')
+            validated_data['owner_id'] = owner_id
+        return super().create(validated_data)
+
 class HutCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hut
@@ -90,6 +108,10 @@ class StageSerializer(serializers.ModelSerializer):
     surfboard_id = serializers.PrimaryKeyRelatedField(
         write_only=True, queryset=Surfboard.objects.all(), source='surfboard', required=False, allow_null=True
     )
+    surf_spot_obj = SurfSpotSerializer(read_only=True)
+    surf_spot_id = serializers.PrimaryKeyRelatedField(
+        write_only=True, queryset=SurfSpot.objects.all(), source='surf_spot_obj', required=False, allow_null=True
+    )
 
     class Meta:
         model = Stage
@@ -100,16 +122,51 @@ class StageSerializer(serializers.ModelSerializer):
             'calculated_length_km', 'calculated_elevation_gain', 'calculated_elevation_loss', 'calculated_duration',
             'external_link', 'track', 'track_points', 'comments', 'photos',
             # Surf-specific fields
-            'surf_spot', 'time_in_water', 'surfboard_used', 'surfboard', 'surfboard_id', 'wave_height', 'wave_quality',
+            'surf_spot', 'surf_spot_obj', 'surf_spot_id', 'time_in_water', 'surfboard_used', 'surfboard', 'surfboard_id', 'wave_height', 'wave_quality',
             'water_temperature', 'waves_caught', 'tide_stage', 'tide_movement',
             'swell_direction', 'wind_direction', 'wave_energy'
         ]
         extra_kwargs = { 'trip': {'required': False} }
 
     def get_track(self, obj):
-        points = obj.track_points.order_by('timestamp').values_list('location', flat=True)
-        if not points: return None
-        return {'type': 'LineString', 'coordinates': LineString(list(points)).coords}
+        track_points = obj.track_points.order_by('timestamp').values('location', 'elevation')
+        if not track_points: return None
+
+        # Extract coordinates and elevations
+        coordinates = []
+        elevations = []
+        distances = [0]  # Start at 0 meters
+
+        cumulative_distance = 0
+        prev_point = None
+
+        for tp in track_points:
+            point = tp['location']
+            coordinates.append([point.x, point.y])
+            elevations.append(tp['elevation'] if tp['elevation'] is not None else None)
+
+            # Calculate cumulative distance using gpxpy for accuracy
+            if prev_point:
+                from math import radians, cos, sin, asin, sqrt
+                # Haversine formula for distance between two lat/lon points
+                lon1, lat1 = radians(prev_point.x), radians(prev_point.y)
+                lon2, lat2 = radians(point.x), radians(point.y)
+                dlon = lon2 - lon1
+                dlat = lat2 - lat1
+                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                c = 2 * asin(sqrt(a))
+                distance_meters = 6371000 * c  # Earth radius in meters
+                cumulative_distance += distance_meters
+                distances.append(round(cumulative_distance, 2))
+
+            prev_point = point
+
+        return {
+            'type': 'LineString',
+            'coordinates': coordinates,
+            'elevations': elevations,
+            'distances': distances
+        }
 
     def _handle_gpx_data(self, stage, track_points_data):
         stage.track_points.all().delete()

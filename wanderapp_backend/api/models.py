@@ -78,6 +78,20 @@ class Surfboard(models.Model):
     def __str__(self):
         return f"{self.name} ({self.owner.username})"
 
+class SurfSpot(models.Model):
+    name = models.CharField(max_length=200, help_text="e.g. Pipeline, Malibu, Supertubes")
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='surf_spots')
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = [['owner', 'name']]
+
+    def __str__(self):
+        return f"{self.name} ({self.owner.username})"
+
 class Stage(models.Model):
     ACTIVITY_CHOICES = [
         ('HIKING', 'Hiking'),
@@ -125,20 +139,21 @@ class Stage(models.Model):
     external_link = models.URLField(max_length=500, blank=True)
     
     # Surf-specific fields (all optional for backwards compatibility)
-    surf_spot = models.CharField(max_length=200, blank=True, help_text="Name or description of surf spot")
+    surf_spot = models.CharField(max_length=200, blank=True, help_text="Name or description of surf spot (legacy text field)")
+    surf_spot_obj = models.ForeignKey('SurfSpot', on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions', help_text="Surf spot for this session")
     time_in_water = models.DurationField(null=True, blank=True, help_text="Time spent surfing")
     surfboard_used = models.CharField(max_length=100, blank=True, help_text="Type/description of surfboard (legacy text field)")
     surfboard = models.ForeignKey(Surfboard, on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions', help_text="Surfboard used in this session")
     wave_height = models.FloatField(null=True, blank=True, help_text="Wave height in meters")
     wave_quality = models.IntegerField(
-        null=True, blank=True, 
+        null=True, blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(5)],
-        help_text="Wave quality rating (1-5)"
+        help_text="Wave quality rating: 1=Poor, 2=Fair, 3=Good, 4=Great, 5=Epic"
     )
     water_temperature = models.FloatField(null=True, blank=True, help_text="Water temperature in Celsius")
     waves_caught = models.IntegerField(null=True, blank=True, help_text="Number of waves caught")
-    tide_stage = models.CharField(max_length=5, choices=TIDE_STAGE_CHOICES, blank=True)
-    tide_movement = models.CharField(max_length=7, choices=TIDE_MOVEMENT_CHOICES, blank=True)
+    tide_stage = models.CharField(max_length=5, choices=TIDE_STAGE_CHOICES, blank=True, help_text="Tide height during session")
+    tide_movement = models.CharField(max_length=7, choices=TIDE_MOVEMENT_CHOICES, blank=True, help_text="Tide direction during session")
     
     # Additional surf conditions
     swell_direction = models.CharField(max_length=2, choices=DIRECTION_CHOICES, blank=True, help_text="Primary swell direction")

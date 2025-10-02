@@ -9,11 +9,11 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.db.models import Sum, Count, Value, FloatField, DurationField, Q, Case, When, Avg, Min, Max, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from datetime import timedelta
-from .models import Trip, Stage, Comment, TrackPoint, Hut, User, Photo, Surfboard
+from .models import Trip, Stage, Comment, TrackPoint, Hut, User, Photo, Surfboard, SurfSpot
 from django_countries import countries
 
 # WICHTIG: Die korrekten Serializer für Liste/Detail importieren
-from .serializers import TripListSerializer, TripDetailSerializer, StageSerializer, CommentSerializer, HutSerializer, UserSerializer, PartnerStatSerializer, PhotoSerializer, SurfboardSerializer
+from .serializers import TripListSerializer, TripDetailSerializer, StageSerializer, CommentSerializer, HutSerializer, UserSerializer, PartnerStatSerializer, PhotoSerializer, SurfboardSerializer, SurfSpotSerializer
 from .pagination import StandardResultsSetPagination # Unser Paginierungs-Modul
 from .permissions import IsCreatorOrReadOnly, IsAuthorOrStageCreatorOrAdmin
 from .filters import TripFilter
@@ -123,6 +123,18 @@ class SurfboardViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Users can only see their own surfboards
         return Surfboard.objects.filter(owner=self.request.user)
+
+    def perform_create(self, serializer):
+        # Auto-assign owner to current user
+        serializer.save(owner=self.request.user)
+
+class SurfSpotViewSet(viewsets.ModelViewSet):
+    serializer_class = SurfSpotSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Users can only see their own surf spots
+        return SurfSpot.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
         # Auto-assign owner to current user
@@ -424,17 +436,15 @@ def search_suggestions(request):
 
     suggestions = []
 
-    # Search surf spots
-    surf_spots = Stage.objects.filter(
-        surf_spot__icontains=query,
-        activity_type='SURFING',
-        surf_spot__isnull=False
-    ).exclude(surf_spot__exact='').values_list('surf_spot', flat=True).distinct()[:5]
+    # Search surf spots from SurfSpot model
+    surf_spots = SurfSpot.objects.filter(
+        name__icontains=query
+    ).values_list('name', flat=True).distinct()[:5]
 
     for spot in surf_spots:
         suggestions.append({
             'type': 'surf_spot',
-            'label': f'🏄 {spot}',
+            'label': spot,
             'value': spot,
             'category': 'Surf Spots'
         })
