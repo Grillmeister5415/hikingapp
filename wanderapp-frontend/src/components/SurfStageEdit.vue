@@ -111,6 +111,21 @@
             />
           </div>
 
+          <div class="form-row">
+            <BaseInput
+              id="crowd_factor"
+              type="select"
+              v-model="stage.crowd_factor"
+              label="Crowd Factor"
+            >
+              <option value="">Select...</option>
+              <option value="EMPTY">Empty</option>
+              <option value="CHILL">Chill</option>
+              <option value="CROWDED">Crowded</option>
+              <option value="PACKED">Packed</option>
+            </BaseInput>
+          </div>
+
           <!-- Tide Information -->
           <div class="tide-section">
             <h4>🌊 Tide Information</h4>
@@ -176,14 +191,24 @@
                 <option value="NW">Northwest (NW)</option>
               </BaseInput>
             </div>
-            <BaseInput
-              id="wave_energy"
-              type="number"
-              step="0.1"
-              v-model="stage.wave_energy"
-              label="Wave Energy"
-              placeholder="e.g. 2.5 (wave power/energy rating)"
-            />
+            <div class="form-row">
+              <BaseInput
+                id="wave_energy"
+                type="number"
+                step="0.1"
+                v-model="stage.wave_energy"
+                label="Wave Energy (kJ)"
+                placeholder="z.B. 255"
+              />
+              <BaseInput
+                id="wind_speed"
+                type="number"
+                step="0.1"
+                v-model="stage.wind_speed"
+                label="Windgeschwindigkeit (km/h)"
+                placeholder="z.B. 15.5"
+              />
+            </div>
           </div>
 
           <BaseInput
@@ -344,7 +369,9 @@ const handleSubmit = async () => {
       // Additional surf conditions
       swell_direction: stage.value.swell_direction,
       wind_direction: stage.value.wind_direction,
-      wave_energy: stage.value.wave_energy ? parseFloat(stage.value.wave_energy) : null
+      wave_energy: stage.value.wave_energy ? parseFloat(stage.value.wave_energy) : null,
+      crowd_factor: stage.value.crowd_factor,
+      wind_speed: stage.value.wind_speed ? parseFloat(stage.value.wind_speed) : null
     };
 
     await api.patch(`/stages/${stageId.value}/`, payload);

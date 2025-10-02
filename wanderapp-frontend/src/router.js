@@ -90,6 +90,14 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    // If there's a saved position (browser back/forward), use it
+    if (savedPosition) {
+      return savedPosition;
+    }
+    // Otherwise, always scroll to top
+    return { top: 0, behavior: 'instant' };
+  }
 });
 
 // Navigation guard to protect routes

@@ -45,11 +45,15 @@ htmlcov/
 .mypy_cache/
 .pytest_cache/
 
+# ---- Playwright Artifacts ----
+.playwright-mcp/
+wanderapp-frontend/.playwright-mcp/
+wanderapp_backend/.playwright-mcp/
+
 # .gitignore
 
 # Environment settings
 .env
 
 .claude/settings.local.json
-
 

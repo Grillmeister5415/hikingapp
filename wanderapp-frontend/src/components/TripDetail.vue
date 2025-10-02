@@ -148,80 +148,139 @@
             </div>
         </div>
 
-        <!-- Surf Stats -->
-        <div v-if="stage.activity_type === 'SURFING'" class="stage-stats surf-stats">
-            <div class="stat-item">
-              <span>{{ formatDuration(stage.time_in_water) }}</span>
-              <label>Time in water</label>
+        <!-- Surf Stats - Redesigned -->
+        <div v-if="stage.activity_type === 'SURFING'" class="surf-session">
+          <!-- Session Overview -->
+          <div class="session-overview">
+            <div class="overview-item">
+              <span class="overview-icon">⏱</span>
+              <div>
+                <div class="overview-value">{{ formatDuration(stage.time_in_water) }}</div>
+                <div class="overview-label">Time in water</div>
+              </div>
             </div>
-            <span class="stat-separator" v-if="stage.surf_spot">|</span>
-            <div class="stat-item" v-if="stage.surf_spot">
-              <span>{{ stage.surf_spot }}</span>
-              <label>Surf Spot</label>
+            <div class="overview-item" v-if="stage.waves_caught">
+              <span class="overview-icon">🌊</span>
+              <div>
+                <div class="overview-value">{{ stage.waves_caught }}</div>
+                <div class="overview-label">Waves caught</div>
+              </div>
             </div>
-            <span class="stat-separator" v-if="stage.wave_height">|</span>
-            <div class="stat-item" v-if="stage.wave_height">
-              <span>{{ stage.wave_height }} <small>m</small></span>
-              <label>Wave height</label>
+            <div class="overview-item" v-if="stage.surfboard?.name || stage.surfboard_used">
+              <span class="overview-icon">🏄</span>
+              <div>
+                <div class="overview-value">{{ stage.surfboard?.name || stage.surfboard_used }}</div>
+                <div class="overview-label">Surfboard</div>
+              </div>
             </div>
-            <span class="stat-separator" v-if="stage.wave_quality">|</span>
-            <div class="stat-item" v-if="stage.wave_quality">
-              <span>{{ '★'.repeat(stage.wave_quality) }}</span>
-              <label>Quality</label>
-            </div>
-            <span class="stat-separator" v-if="stage.swell_direction">|</span>
-            <div class="stat-item" v-if="stage.swell_direction">
-              <span>{{ getDirectionLabel(stage.swell_direction) }}</span>
-              <label>Swell</label>
-            </div>
-            <span class="stat-separator" v-if="stage.wind_direction">|</span>
-            <div class="stat-item" v-if="stage.wind_direction">
-              <span>{{ getDirectionLabel(stage.wind_direction) }}</span>
-              <label>Wind</label>
-            </div>
-            <span class="stat-separator" v-if="stage.wave_energy">|</span>
-            <div class="stat-item" v-if="stage.wave_energy">
-              <span>{{ stage.wave_energy }}</span>
-              <label>Wave energy</label>
-            </div>
-            <span class="stat-separator" v-if="stage.external_link">|</span>
-            <div class="stat-item" v-if="stage.external_link">
-              <a :href="stage.external_link" target="_blank" rel="noopener noreferrer">
-                {{ formatLink(stage.external_link) }} 🔗
-              </a>
-            </div>
-        </div>
+          </div>
 
-        <!-- Additional Surf Details -->
-        <div v-if="stage.activity_type === 'SURFING'" class="surf-details">
-          <div v-if="stage.surfboard?.name || stage.surfboard_used" class="detail-item">
-            <strong>Surfboard:</strong> {{ stage.surfboard?.name || stage.surfboard_used }}
+          <!-- Quality Stars (Hero Element) -->
+          <div v-if="stage.wave_quality" class="quality-hero">
+            <div class="quality-stars">{{ '★'.repeat(stage.wave_quality) }}</div>
+            <div class="quality-label">Wave Quality</div>
           </div>
-          <div v-if="stage.waves_caught" class="detail-item">
-            <strong>Waves caught:</strong> {{ stage.waves_caught }}
+
+          <!-- Conditions Section -->
+          <div class="conditions-grid">
+            <!-- Wave Conditions Card -->
+            <BaseCard variant="flat" padding="small" v-if="stage.wave_height || stage.wave_energy || stage.surf_spot">
+              <div class="condition-card">
+                <h5 class="condition-title">
+                  <span>Wave Conditions</span>
+                  <span v-if="stage.wave_height" class="wave-size-badge" :class="getWaveSizeClass(stage.wave_height)">
+                    {{ getWaveSizeLabel(stage.wave_height) }}
+                  </span>
+                </h5>
+                <div class="condition-items">
+                  <div v-if="stage.surf_spot" class="condition-row">
+                    <span class="condition-label">Surf Spot</span>
+                    <span class="condition-value">{{ stage.surf_spot }}</span>
+                  </div>
+                  <div v-if="stage.wave_height" class="condition-row">
+                    <span class="condition-label">Wave Height</span>
+                    <span class="condition-value">{{ stage.wave_height }}m</span>
+                  </div>
+                  <div v-if="stage.wave_energy" class="condition-row">
+                    <span class="condition-label">Wave Energy</span>
+                    <span class="condition-value">{{ stage.wave_energy }}</span>
+                  </div>
+                </div>
+              </div>
+            </BaseCard>
+
+            <!-- Swell & Wind Card -->
+            <BaseCard variant="flat" padding="small" v-if="stage.swell_direction || stage.wind_direction">
+              <div class="condition-card">
+                <h5 class="condition-title">
+                  <span>Swell & Wind</span>
+                  <span
+                    v-if="getWindCondition(stage.swell_direction, stage.wind_direction)"
+                    class="wind-quality-badge"
+                    :style="{ backgroundColor: getWindCondition(stage.swell_direction, stage.wind_direction).color }"
+                  >
+                    {{ getWindConditionLabel(getWindCondition(stage.swell_direction, stage.wind_direction).type) }}
+                  </span>
+                </h5>
+                <div class="condition-items">
+                  <div v-if="stage.swell_direction" class="condition-row">
+                    <span class="condition-label">Swell</span>
+                    <span class="condition-value">
+                      <span class="direction-arrow" :style="{ transform: `rotate(${getDirectionDegrees(stage.swell_direction)}deg)` }">↑</span>
+                      {{ getDirectionLabel(stage.swell_direction) }}
+                    </span>
+                  </div>
+                  <div v-if="stage.wind_direction" class="condition-row">
+                    <span class="condition-label">Wind</span>
+                    <span class="condition-value">
+                      <span v-if="stage.wind_speed" class="wind-speed">{{ stage.wind_speed }} km/h</span>
+                      <span class="direction-arrow" :style="{ transform: `rotate(${getDirectionDegrees(stage.wind_direction)}deg)` }">↑</span>
+                      {{ getDirectionLabel(stage.wind_direction) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </BaseCard>
+
+            <!-- Environment Card -->
+            <BaseCard variant="flat" padding="small" v-if="stage.water_temperature || stage.tide_stage || stage.tide_movement || stage.crowd_factor">
+              <div class="condition-card">
+                <h5 class="condition-title">
+                  <span>Environment</span>
+                  <span v-if="stage.crowd_factor" class="crowd-badge" :class="`crowd-${stage.crowd_factor.toLowerCase()}`">
+                    {{ getCrowdLabel(stage.crowd_factor) }}
+                  </span>
+                </h5>
+                <div class="condition-items">
+                  <div v-if="stage.water_temperature" class="condition-row">
+                    <span class="condition-label">Water Temp</span>
+                    <span class="condition-value">{{ stage.water_temperature }}°C</span>
+                  </div>
+                  <div v-if="getFormattedTide(stage.tide_stage, stage.tide_movement)" class="condition-row">
+                    <span class="condition-label">Tide</span>
+                    <span class="condition-value">{{ getFormattedTide(stage.tide_stage, stage.tide_movement) }}</span>
+                  </div>
+                </div>
+              </div>
+            </BaseCard>
           </div>
-          <div v-if="stage.water_temperature" class="detail-item">
-            <strong>Water temperature:</strong> {{ stage.water_temperature }}°C
-          </div>
-          <div v-if="stage.tide_stage || stage.tide_movement" class="detail-item">
-            <strong>Tides:</strong> 
-            <span v-if="stage.tide_stage">{{ getTideLabel(stage.tide_stage) }}</span>
-            <span v-if="stage.tide_stage && stage.tide_movement"> - </span>
-            <span v-if="stage.tide_movement">{{ getTideMovementLabel(stage.tide_movement) }}</span>
-          </div>
-          <div v-if="stage.swell_direction" class="detail-item">
-            <strong>Swell direction:</strong> {{ getDirectionLabel(stage.swell_direction) }}
-          </div>
-          <div v-if="stage.wind_direction" class="detail-item">
-            <strong>Wind direction:</strong> {{ getDirectionLabel(stage.wind_direction) }}
-          </div>
-          <div v-if="stage.wave_energy" class="detail-item">
-            <strong>Wave energy:</strong> {{ stage.wave_energy }}
+
+          <!-- External Link -->
+          <div v-if="stage.external_link" class="surf-external-link">
+            <a :href="stage.external_link" target="_blank" rel="noopener noreferrer">
+              {{ formatLink(stage.external_link) }} 🔗
+            </a>
           </div>
         </div>
 
         <div v-if="stage.activity_type !== 'SURFING' && stage.track">
-          <HikeMap :stageId="stage.id" />
+          <HikeMap :stageId="stage.id" :highlightedPosition="highlightedPosition" />
+          <ElevationProfile
+            v-if="hasElevationData(stage.track)"
+            :trackData="stage.track"
+            @position-hover="handlePositionHover"
+            @position-leave="handlePositionLeave"
+          />
         </div>
         <div v-else-if="stage.activity_type !== 'SURFING'" class="no-track">
           <p>Für diese Etappe sind keine GPX-Daten vorhanden.</p>
@@ -272,6 +331,7 @@ import { useRoute } from 'vue-router';
 import api from '../api';
 import { getTripListRoute } from '../utils/navigation.js';
 import HikeMap from './HikeMap.vue';
+import ElevationProfile from './ElevationProfile.vue';
 import CommentSection from './CommentSection.vue';
 import { currentUser } from '../store';
 import ImageUploader from './ImageUploader.vue';
@@ -281,6 +341,7 @@ import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/style.css';
 import BaseButton from './base/BaseButton.vue';
 import BaseBadge from './base/BaseBadge.vue';
+import BaseCard from './base/BaseCard.vue';
 
 const route = useRoute();
 const trip = ref(null);
@@ -290,6 +351,9 @@ const isLoading = ref(true);
 const tripListRoute = computed(() => getTripListRoute());
 const error = ref(null);
 let lightbox = null;
+
+// State for elevation profile interaction
+const highlightedPosition = ref(null);
 
 const openLightbox = (photos, startIndex) => {
   if (!photos || photos.length === 0) return;
@@ -433,28 +497,11 @@ const getStageEditRoute = (stage) => {
   }
 };
 
-const getTideLabel = (tideStage) => {
-  switch (tideStage) {
-    case 'LOW': return 'Low tide';
-    case 'MID': return 'Mid tide';
-    case 'HIGH': return 'High tide';
-    default: return tideStage;
-  }
-};
-
-const getTideMovementLabel = (tideMovement) => {
-  switch (tideMovement) {
-    case 'RISING': return 'Rising';
-    case 'FALLING': return 'Falling';
-    default: return tideMovement;
-  }
-};
-
 // Helper function to get direction label
 const getDirectionLabel = (direction) => {
   const directions = {
     'N': 'North',
-    'NE': 'Northeast', 
+    'NE': 'Northeast',
     'E': 'East',
     'SE': 'Southeast',
     'S': 'South',
@@ -463,6 +510,115 @@ const getDirectionLabel = (direction) => {
     'NW': 'Northwest',
   };
   return directions[direction] || direction;
+};
+
+// Helper function to get direction in degrees for arrow rotation
+const getDirectionDegrees = (direction) => {
+  const directionMap = {
+    'N': 0,
+    'NE': 45,
+    'E': 90,
+    'SE': 135,
+    'S': 180,
+    'SW': 225,
+    'W': 270,
+    'NW': 315
+  };
+  return directionMap[direction] || 0;
+};
+
+// Calculate wind conditions relative to swell (offshore/onshore/cross)
+const getWindCondition = (swellDir, windDir) => {
+  if (!swellDir || !windDir) return null;
+
+  const directionMap = {
+    'N': 0, 'NE': 45, 'E': 90, 'SE': 135,
+    'S': 180, 'SW': 225, 'W': 270, 'NW': 315
+  };
+
+  const swell = directionMap[swellDir];
+  const wind = directionMap[windDir];
+
+  if (swell === undefined || wind === undefined) return null;
+
+  // Calculate difference (normalized to 0-180)
+  let diff = Math.abs(swell - wind);
+  if (diff > 180) diff = 360 - diff;
+
+  // Offshore: wind blowing from land to sea (opposite to swell)
+  // Onshore: wind blowing from sea to land (same direction as swell)
+  // Cross: wind perpendicular to swell
+  if (diff >= 135 && diff <= 225) {
+    return { type: 'offshore', emoji: '✓', color: 'var(--color-success)' };
+  } else if (diff <= 45) {
+    return { type: 'onshore', emoji: '⚠', color: 'var(--color-warning)' };
+  } else {
+    return { type: 'cross', emoji: '→', color: 'var(--color-neutral-500)' };
+  }
+};
+
+// Format combined tide display
+const getFormattedTide = (tideStage, tideMovement) => {
+  if (!tideStage && !tideMovement) return null;
+
+  const stageMap = {
+    'LOW': 'Low',
+    'MID': 'Mid',
+    'HIGH': 'High'
+  };
+
+  const movementMap = {
+    'RISING': 'Rising',
+    'FALLING': 'Falling'
+  };
+
+  const stage = stageMap[tideStage] || tideStage;
+  const movement = movementMap[tideMovement] || tideMovement;
+
+  if (stage && movement) {
+    return `${stage} → ${movement}`;
+  }
+  return stage || movement;
+};
+
+// Get wind condition label text
+const getWindConditionLabel = (type) => {
+  const labels = {
+    'offshore': 'Offshore',
+    'onshore': 'Onshore',
+    'cross': 'Cross-shore'
+  };
+  return labels[type] || type;
+};
+
+// Get crowd factor label
+const getCrowdLabel = (crowdFactor) => {
+  const labels = {
+    'EMPTY': 'Empty',
+    'CHILL': 'Chill',
+    'CROWDED': 'Crowded',
+    'PACKED': 'Packed'
+  };
+  return labels[crowdFactor] || crowdFactor;
+};
+
+// Get wave size category and label
+const getWaveSizeLabel = (height) => {
+  if (height >= 4) return 'Suicidal';
+  if (height >= 2.5) return 'Huge';
+  if (height >= 1.8) return 'Big';
+  if (height >= 1.0) return 'Medium';
+  if (height >= 0.5) return 'Small';
+  return 'Tiny';
+};
+
+const getWaveSizeClass = (height) => {
+  if (height >= 4) return 'wave-suicidal';
+  if (height >= 2.5) return 'wave-huge';
+  if (height >= 1.8) return 'wave-big';
+  if (height >= 1.0) return 'wave-medium';
+  if (height >= 0.5) return 'wave-small';
+  return 'wave-tiny';
 };
 
 const formatNumber = (num) => {
@@ -526,23 +682,40 @@ const handleDeleteStage = async (stageId) => {
 // Helper function to get list of unique surf spots with counts from stages
 const getSurfSpotsList = () => {
   if (!trip.value || !trip.value.stages) return [];
-  
+
   const surfStages = trip.value.stages
     .filter(stage => stage.activity_type === 'SURFING' && stage.surf_spot && stage.surf_spot.trim())
     .map(stage => stage.surf_spot.trim());
-  
+
   // Count occurrences of each surf spot
   const spotCounts = {};
   surfStages.forEach(spot => {
     spotCounts[spot] = (spotCounts[spot] || 0) + 1;
   });
-  
+
   // Return array of objects with spot name and count
   return Object.entries(spotCounts).map(([spot, count]) => ({
     name: spot,
     count: count,
     display: count > 1 ? `${spot} (${count})` : spot
   }));
+};
+
+// Check if track has elevation data
+const hasElevationData = (trackData) => {
+  if (!trackData || !trackData.elevations) return false;
+  // Check if there's at least one non-null elevation value
+  return trackData.elevations.some(ele => ele !== null);
+};
+
+// Handle elevation profile hover
+const handlePositionHover = (positionData) => {
+  highlightedPosition.value = positionData;
+};
+
+// Handle elevation profile leave
+const handlePositionLeave = () => {
+  highlightedPosition.value = null;
 };
 </script>
 
@@ -863,21 +1036,246 @@ a:hover {
   border-left: 4px solid var(--color-surfing);
 }
 
-.surf-details {
+/* Surf Session - Redesigned Layout */
+.surf-session {
   margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.session-overview {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-6);
   padding: var(--space-4);
-  background-color: rgba(32, 178, 170, 0.05);
+  background: linear-gradient(135deg, rgba(32, 178, 170, 0.05) 0%, rgba(72, 187, 120, 0.05) 100%);
   border-radius: var(--radius-md);
-  border-left: 3px solid var(--color-surfing);
 }
 
-.detail-item {
-  margin-bottom: var(--space-2);
+.overview-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 140px;
+}
+
+.overview-icon {
+  font-size: var(--text-3xl);
+}
+
+.overview-value {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.overview-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
+
+/* Quality Hero Section */
+.quality-hero {
+  text-align: center;
+  padding: var(--space-6) 0;
+  margin-bottom: var(--space-4);
+}
+
+.quality-stars {
+  font-size: 3rem;
+  color: var(--color-primary);
+  letter-spacing: 0.25rem;
+  line-height: 1;
+}
+
+.quality-label {
   font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-medium);
 }
 
-.detail-item:last-child {
-  margin-bottom: 0;
+/* Conditions Grid */
+.conditions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.condition-card {
+  min-width: 0;
+}
+
+.condition-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 var(--space-3) 0;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.condition-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.condition-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.condition-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-medium);
+}
+
+.condition-value {
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  font-weight: var(--font-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.direction-arrow {
+  display: inline-block;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+  transition: transform var(--transition-fast);
+}
+
+.wind-speed {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  margin-right: var(--space-2);
+}
+
+.wind-quality-badge {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: white;
+  white-space: nowrap;
+}
+
+/* Crowd Factor Badges */
+.crowd-badge {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.crowd-empty {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.crowd-chill {
+  background-color: #4299E1;
+  color: white;
+}
+
+.crowd-crowded {
+  background-color: var(--color-warning);
+  color: white;
+}
+
+.crowd-packed {
+  background-color: var(--color-error);
+  color: white;
+}
+
+/* Wave Size Badges */
+.wave-size-badge {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  color: white;
+}
+
+.wave-tiny {
+  background-color: #90CDF4; /* Light Blue */
+}
+
+.wave-small {
+  background-color: #48BB78; /* Green */
+}
+
+.wave-medium {
+  background-color: #ECC94B; /* Yellow */
+}
+
+.wave-big {
+  background-color: #ED8936; /* Orange */
+}
+
+.wave-huge {
+  background-color: #F56565; /* Red */
+}
+
+.wave-suicidal {
+  background-color: #C53030; /* Dark Red */
+  animation: defcon-blink 0.8s ease-in-out infinite;
+}
+
+@keyframes defcon-blink {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(197, 48, 48, 0.8);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 20px rgba(197, 48, 48, 1);
+  }
+}
+
+.surf-external-link {
+  text-align: center;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.surf-external-link a {
+  color: var(--color-primary);
+  font-weight: var(--font-medium);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.surf-external-link a:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
 }
 
 .surf-stats {
@@ -1051,6 +1449,33 @@ a:hover {
     .photo-gallery {
       grid-template-columns: repeat(2, 1fr); /* Force 2 columns on very narrow screens */
     }
+  }
+
+  /* Surf session mobile optimizations */
+  .session-overview {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .overview-item {
+    min-width: 100%;
+  }
+
+  .quality-stars {
+    font-size: 2.5rem;
+  }
+
+  .conditions-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .condition-row {
+    font-size: var(--text-sm);
+  }
+
+  .condition-value {
+    font-size: var(--text-sm);
   }
 }
 

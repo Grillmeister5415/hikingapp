@@ -108,6 +108,21 @@
           />
         </div>
 
+        <div class="form-row">
+          <BaseInput
+            id="crowd_factor"
+            type="select"
+            v-model="crowd_factor"
+            label="Crowd Factor"
+          >
+            <option value="">Select...</option>
+            <option value="EMPTY">Empty</option>
+            <option value="CHILL">Chill</option>
+            <option value="CROWDED">Crowded</option>
+            <option value="PACKED">Packed</option>
+          </BaseInput>
+        </div>
+
         <!-- Tide Information -->
         <div class="tide-section">
           <h4>🌊 Tide Information</h4>
@@ -173,14 +188,24 @@
               <option value="NW">Northwest (NW)</option>
             </BaseInput>
           </div>
-          <BaseInput
-            id="wave_energy"
-            type="number"
-            step="0.1"
-            v-model="wave_energy"
-            label="Wave Energy"
-            placeholder="e.g. 2.5 (wave power/energy rating)"
-          />
+          <div class="form-row">
+            <BaseInput
+              id="wave_energy"
+              type="number"
+              step="0.1"
+              v-model="wave_energy"
+              label="Wave Energy (kJ)"
+              placeholder="z.B. 255"
+            />
+            <BaseInput
+              id="wind_speed"
+              type="number"
+              step="0.1"
+              v-model="wind_speed"
+              label="Windgeschwindigkeit (km/h)"
+              placeholder="z.B. 15.5"
+            />
+          </div>
         </div>
 
         <BaseInput
@@ -240,6 +265,8 @@ const tide_movement = ref('');
 const swell_direction = ref('');
 const wind_direction = ref('');
 const wave_energy = ref(null);
+const crowd_factor = ref('');
+const wind_speed = ref(null);
 
 const error = ref(null);
 const isSubmitting = ref(false);
@@ -342,6 +369,8 @@ const handleSubmit = async () => {
       swell_direction: swell_direction.value,
       wind_direction: wind_direction.value,
       wave_energy: wave_energy.value ? parseFloat(wave_energy.value) : null,
+      crowd_factor: crowd_factor.value,
+      wind_speed: wind_speed.value ? parseFloat(wind_speed.value) : null,
 
       // No track points for surfing
       track_points: []

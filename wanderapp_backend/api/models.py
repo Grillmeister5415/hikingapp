@@ -108,13 +108,19 @@ class Stage(models.Model):
     ]
     DIRECTION_CHOICES = [
         ('N', 'North'),
-        ('NE', 'Northeast'), 
+        ('NE', 'Northeast'),
         ('E', 'East'),
         ('SE', 'Southeast'),
         ('S', 'South'),
         ('SW', 'Southwest'),
         ('W', 'West'),
         ('NW', 'Northwest'),
+    ]
+    CROWD_CHOICES = [
+        ('EMPTY', 'Empty'),
+        ('CHILL', 'Chill'),
+        ('CROWDED', 'Crowded'),
+        ('PACKED', 'Packed'),
     ]
     
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='stages')
@@ -158,8 +164,10 @@ class Stage(models.Model):
     # Additional surf conditions
     swell_direction = models.CharField(max_length=2, choices=DIRECTION_CHOICES, blank=True, help_text="Primary swell direction")
     wind_direction = models.CharField(max_length=2, choices=DIRECTION_CHOICES, blank=True, help_text="Wind direction")
-    wave_energy = models.FloatField(null=True, blank=True, help_text="Wave energy/power rating")
-    
+    wave_energy = models.FloatField(null=True, blank=True, help_text="Wave energy/power rating in kJ")
+    crowd_factor = models.CharField(max_length=10, choices=CROWD_CHOICES, blank=True, help_text="How crowded was the surf spot")
+    wind_speed = models.FloatField(null=True, blank=True, help_text="Wind speed in km/h")
+
     def __str__(self): return f"{self.trip.name} - {self.name}"
 
 class TrackPoint(models.Model):

@@ -66,6 +66,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `wanderapp-frontend/src/components/HikeMap.vue` - Added position marker functionality
 - `wanderapp-frontend/src/components/TripDetail.vue` - Integrated elevation profile
 
+**Surf Session Condition Enhancements**
+- Added `crowd_factor` choice field and `wind_speed` metric to the Stage model with dedicated Django migrations (`0021`, `0022`)
+- Surf stage create/edit forms now capture crowd density and wind speed alongside wave energy for richer analytics
+- Surf session detail cards redesigned with condition badges, wind/offshore indicators, and crowd labels in `TripDetail.vue`
+- Trip detail header aggregates surf spots and surf metrics; map overlays now include start/end pins plus a live cursor marker synced with the elevation profile
+
+**Trip Detail UX Polish**
+- Stage cards reorganized with responsive layouts, clearer mobile stacking, and inline surf condition visualizations
+- Added router `scrollBehavior` to reset scroll position when navigating between trip/detail routes for better UX
+
 **Dependencies Added:**
 - `chart.js@^4.5.0`
 - `vue-chartjs@^5.3.2`
