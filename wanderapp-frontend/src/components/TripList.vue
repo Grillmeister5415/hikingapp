@@ -218,6 +218,7 @@ import AdvancedSearch from './AdvancedSearch.vue';
 import HikingAdvancedSearch from './HikingAdvancedSearch.vue';
 import BaseButton from './base/BaseButton.vue';
 import BaseBadge from './base/BaseBadge.vue';
+import { formatDurationHoursMinutes } from '../utils/duration.js';
 import BaseInput from './base/BaseInput.vue';
 
 // Accept props for default category
@@ -618,42 +619,7 @@ const formatNumber = (num) => {
   return Math.round(num).toLocaleString('de-CH');
 };
 
-const formatDuration = (duration) => {
-  if (!duration) return '0h 0m';
-  
-  let totalSeconds;
-  if (typeof duration === 'string') {
-    if (duration.includes('day')) {
-      const dayMatch = duration.match(/(\d+)\s*day/);
-      const days = dayMatch ? parseInt(dayMatch[1]) : 0;
-      
-      const timeMatch = duration.match(/(\d{1,2}):(\d{2}):(\d{2})/);
-      if (timeMatch) {
-        const hours = parseInt(timeMatch[1]) + (days * 24);
-        const minutes = parseInt(timeMatch[2]);
-        return `${hours}h ${minutes}m`;
-      }
-      return `${days * 24}h 0m`;
-    } else {
-      const timeParts = duration.split(':');
-      if (timeParts.length >= 2) {
-        const hours = parseInt(timeParts[0]);
-        const minutes = parseInt(timeParts[1]);
-        return `${hours}h ${minutes}m`;
-      }
-    }
-  } else if (typeof duration === 'number') {
-    totalSeconds = duration;
-  }
-  
-  if (totalSeconds !== undefined) {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
-  }
-  
-  return '0h 0m';
-};
+const formatDuration = formatDurationHoursMinutes;
 
 const logout = () => {
   // Use centralized logout from api.js

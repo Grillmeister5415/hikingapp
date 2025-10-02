@@ -6,7 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased] - 2025-10-02
+## [Unreleased]
+
+### Fixed
+
+- Normalized duration formatting in trip and dashboard views so multi-day surf sessions (e.g., `1 00:00:00`) now display the correct hour totals instead of truncating at 24h.
+
+## [Previous Updates] - 2025-10-02
 
 ### Added
 

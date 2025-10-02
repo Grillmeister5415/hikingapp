@@ -342,6 +342,7 @@ import 'photoswipe/style.css';
 import BaseButton from './base/BaseButton.vue';
 import BaseBadge from './base/BaseBadge.vue';
 import BaseCard from './base/BaseCard.vue';
+import { formatDurationHoursMinutes } from '../utils/duration.js';
 
 const route = useRoute();
 const trip = ref(null);
@@ -635,38 +636,7 @@ const formatDate = (dateString) => {
   return `${day}.${month}.${year}`;
 };
 
-const formatDuration = (duration) => {
-  if (!duration) return '0h 0m';
-  let totalSeconds = 0;
-  if (typeof duration === 'string') {
-    if (duration.includes('day')) {
-      const dayMatch = duration.match(/(\d+)\s*day/);
-      const days = dayMatch ? parseInt(dayMatch[1], 10) : 0;
-      totalSeconds += days * 86400;
-      const timeMatch = duration.match(/(\d{1,2}):(\d{2}):(\d{2})/);
-      if (timeMatch) {
-        totalSeconds += parseInt(timeMatch[1], 10) * 3600;
-        totalSeconds += parseInt(timeMatch[2], 10) * 60;
-        totalSeconds += parseInt(timeMatch[3], 10);
-      }
-    } else {
-      const timeParts = duration.split(':');
-      if (timeParts.length >= 2) {
-        totalSeconds += parseInt(timeParts[0], 10) * 3600;
-        totalSeconds += parseInt(timeParts[1], 10) * 60;
-        if (timeParts.length === 3) {
-          totalSeconds += parseInt(timeParts[2], 10);
-        }
-      }
-    }
-  } else if (typeof duration === 'number') {
-    totalSeconds = duration;
-  }
-  if (isNaN(totalSeconds)) return '0h 0m';
-  const totalHours = Math.floor(totalSeconds / 3600);
-  const remainingMinutes = Math.round((totalSeconds % 3600) / 60);
-  return `${totalHours}h ${remainingMinutes}m`;
-};
+const formatDuration = formatDurationHoursMinutes;
 
 const handleDeleteStage = async (stageId) => {
   if (window.confirm("Sind Sie sicher, dass Sie diese Etappe löschen möchten?")) {

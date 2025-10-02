@@ -305,6 +305,7 @@ import { useRoute } from 'vue-router';
 import api from '../api';
 import { getTripListRoute } from '../utils/navigation.js';
 import BaseButton from './base/BaseButton.vue';
+import { formatDurationHoursMinutes, formatDurationFromSeconds as formatDurationFromSecondsUtil } from '../utils/duration.js';
 
 const route = useRoute();
 
@@ -434,44 +435,8 @@ const formatNumber = (num) => {
   return num.toLocaleString('de-CH');
 };
 
-const formatDuration = (durationString) => {
-  if (!durationString) return '0h 0m';
-  
-  let totalSeconds = 0;
-  if (typeof durationString === 'string') {
-    if (durationString.includes('day')) {
-      const dayMatch = durationString.match(/(\d+)\s*day/);
-      const days = dayMatch ? parseInt(dayMatch[1], 10) : 0;
-      totalSeconds += days * 86400;
-      const timeMatch = durationString.match(/(\d{1,2}):(\d{2}):(\d{2})/);
-      if (timeMatch) {
-        totalSeconds += parseInt(timeMatch[1], 10) * 3600;
-        totalSeconds += parseInt(timeMatch[2], 10) * 60;
-        totalSeconds += parseInt(timeMatch[3], 10);
-      }
-    } else {
-      const timeParts = durationString.split(':');
-      if (timeParts.length >= 2) {
-        totalSeconds += parseInt(timeParts[0], 10) * 3600;
-        totalSeconds += parseInt(timeParts[1], 10) * 60;
-        if (timeParts.length === 3) {
-          totalSeconds += parseInt(timeParts[2], 10);
-        }
-      }
-    }
-  }
-  if (isNaN(totalSeconds)) return '0h 0m';
-  const totalHours = Math.floor(totalSeconds / 3600);
-  const remainingMinutes = Math.round((totalSeconds % 3600) / 60);
-  return `${totalHours}h ${remainingMinutes}m`;
-};
-
-const formatDurationFromSeconds = (seconds) => {
-  if (!seconds || seconds === 0) return '0h 0m';
-  const totalHours = Math.floor(seconds / 3600);
-  const remainingMinutes = Math.round((seconds % 3600) / 60);
-  return `${totalHours}h ${remainingMinutes}m`;
-};
+const formatDuration = formatDurationHoursMinutes;
+const formatDurationFromSeconds = (seconds) => formatDurationFromSecondsUtil(seconds || 0);
 
 const formatTemperature = (temp) => {
   if (temp === null || temp === undefined) return 'N/A';
