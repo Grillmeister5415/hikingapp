@@ -281,13 +281,45 @@ class UserStatsView(APIView):
             min_water_temp=Min(Coalesce('water_temperature', Value(999.0))),
             max_water_temp=Max(Coalesce('water_temperature', Value(-999.0)))
         )
-        
+
         # Calculate most used surfboard
         most_used_board = None
         if surfing_stages.exists():
             board_counts = surfing_stages.exclude(surfboard__isnull=True).values('surfboard__name').annotate(count=Count('surfboard')).order_by('-count').first()
             if board_counts:
                 most_used_board = board_counts['surfboard__name']
+
+        # Environment-specific stats for surfing (Riverwave & Poolwave)
+        riverwave_stages = surfing_stages.filter(environment='RIVERWAVE')
+        poolwave_stages = surfing_stages.filter(environment='POOLWAVE')
+
+        riverwave_stats = {}
+        if riverwave_stages.exists():
+            riverwave_agg = riverwave_stages.aggregate(
+                count=Count('id'),
+                total_time=Sum(Coalesce('time_in_water', Value(timedelta(0))))
+            )
+            # Find most surfed riverwave (surf_spot with most sessions)
+            most_surfed_riverwave = riverwave_stages.exclude(surf_spot='').values('surf_spot').annotate(count=Count('surf_spot')).order_by('-count').first()
+            riverwave_stats = {
+                'count': riverwave_agg['count'] or 0,
+                'total_time': (riverwave_agg.get('total_time') or timedelta(0)).total_seconds(),
+                'most_surfed': most_surfed_riverwave['surf_spot'] if most_surfed_riverwave else None
+            }
+
+        poolwave_stats = {}
+        if poolwave_stages.exists():
+            poolwave_agg = poolwave_stages.aggregate(
+                count=Count('id'),
+                total_time=Sum(Coalesce('time_in_water', Value(timedelta(0))))
+            )
+            # Find most surfed pool (surf_spot with most sessions)
+            most_surfed_pool = poolwave_stages.exclude(surf_spot='').values('surf_spot').annotate(count=Count('surf_spot')).order_by('-count').first()
+            poolwave_stats = {
+                'count': poolwave_agg['count'] or 0,
+                'total_time': (poolwave_agg.get('total_time') or timedelta(0)).total_seconds(),
+                'most_surfed': most_surfed_pool['surf_spot'] if most_surfed_pool else None
+            }
         
         stats_data = {
             'username': user.username,
@@ -318,6 +350,9 @@ class UserStatsView(APIView):
                 'avg_water_temperature': round(surfing_stats.get('avg_water_temp') or 0, 1) if surfing_stats.get('avg_water_temp') else None,
                 'min_water_temperature': surfing_stats.get('min_water_temp') if surfing_stats.get('min_water_temp', 999) != 999 else None,
                 'max_water_temperature': surfing_stats.get('max_water_temp') if surfing_stats.get('max_water_temp', -999) != -999 else None,
+                # Environment-specific stats
+                'riverwave': riverwave_stats if riverwave_stats else None,
+                'poolwave': poolwave_stats if poolwave_stats else None,
             }
         }
         return Response(stats_data)

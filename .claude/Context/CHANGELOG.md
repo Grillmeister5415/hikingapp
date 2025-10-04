@@ -51,6 +51,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Mobile-optimized padding and font sizes for new components
   - Fade-in animations on sections, stat cards, and content grids
 
+**Surf Environment Types (Ocean, Riverwave, Poolwave)**
+- Extended surf functionality to support three distinct surf environments: Ocean, Riverwave, and Poolwave
+- Added environment segmented control to surf session forms allowing users to select between Ocean, Riverwave, or Pool
+- Environment-specific field groups show/hide based on selection for optimized data entry
+- **Ocean (default):** Maintains all existing fields (tide, wave height, swell/wind direction, wave energy)
+- **Riverwave:** New fields for river surfing (Wave Power dropdown, Avg Wait Time, Flow Rate, Water Level)
+- **Poolwave:** Minimal fields (shared core fields only)
+- Shared core fields across all environments: Surf Spot/Name, Time in Water, Waves Caught, Surfboard, Crowd Factor
+- Field reuse strategy: wave_quality, water_temperature, external_link shared where semantically appropriate
+- Dashboard integration: River & Pool subsections under Surfing tab showing session count, total time, and most surfed spot
+- Trip detail display: Environment badge with conditional rendering of environment-specific conditions
+- CSV export: New columns for Environment, Wave Power, Avg Wait Time (min), Flow Rate (m³/s), Water Level (m)
+- Backward compatibility: Existing sessions default to OCEAN environment
+- **Technical Details:**
+  - Backend: Added `environment` field (OCEAN/RIVERWAVE/POOLWAVE) with OCEAN default
+  - Backend: Added riverwave fields: `wave_power` (Dead/Soft/Fun/Juicy/Beast Mode), `average_wait_time` (minutes), `flow_rate` (m³/s), `water_level` (m)
+  - Backend: StageSerializer includes all new environment fields
+  - Backend: UserStatsView calculates separate riverwave_stats and poolwave_stats with session count, total time, most surfed
+  - Frontend: SurfStageCreate/Edit use segmented control pattern with reactive environment switching
+  - Frontend: Adaptive labels (Surf Spot → Riverwave Name → Pool Name) based on environment
+  - Frontend: TripDetail displays environment badge and conditional condition cards
+  - Frontend: UserDashboard shows 🏞️ Riverwave and 🏊 Poolwave subsections with stats
+  - Frontend: CSV export headers and data generation updated for all three environment types
+  - Migration: `0023_stage_average_wait_time_stage_environment_and_more.py`
+
+**Components Modified (Surf Environments):**
+- `wanderapp_backend/api/models.py` - Added environment field and riverwave-specific fields to Stage model
+- `wanderapp_backend/api/serializers.py` - Updated StageSerializer with new environment fields
+- `wanderapp_backend/api/views.py` - Extended UserStatsView with riverwave and poolwave aggregations
+- `wanderapp_backend/api/migrations/0023_*.py` - Database migration for new fields
+- `wanderapp-frontend/src/components/SurfStageCreate.vue` - Added environment selector and conditional field groups
+- `wanderapp-frontend/src/components/SurfStageEdit.vue` - Added environment selector and conditional field groups
+- `wanderapp-frontend/src/components/TripDetail.vue` - Added environment badge and conditional display logic
+- `wanderapp-frontend/src/components/UserDashboard.vue` - Added River & Pool subsections and CSV export columns
+
 **Components Modified:**
 - `wanderapp_backend/api/views.py` - Added DashboardOverviewView, updated UserStatsView and DashboardDataView with year filtering and trip_count fields
 - `wanderapp_backend/api/urls.py` - Added dashboard/overview routes

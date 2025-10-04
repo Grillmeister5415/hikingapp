@@ -122,6 +122,18 @@ class Stage(models.Model):
         ('CROWDED', 'Crowded'),
         ('PACKED', 'Packed'),
     ]
+    ENVIRONMENT_CHOICES = [
+        ('OCEAN', 'Ocean'),
+        ('RIVERWAVE', 'Riverwave'),
+        ('POOLWAVE', 'Poolwave'),
+    ]
+    WAVE_POWER_CHOICES = [
+        ('DEAD', 'Dead'),
+        ('SOFT', 'Soft'),
+        ('FUN', 'Fun'),
+        ('JUICY', 'Juicy'),
+        ('BEAST_MODE', 'Beast Mode'),
+    ]
     
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='stages')
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -167,6 +179,38 @@ class Stage(models.Model):
     wave_energy = models.FloatField(null=True, blank=True, help_text="Wave energy/power rating in kJ")
     crowd_factor = models.CharField(max_length=10, choices=CROWD_CHOICES, blank=True, help_text="How crowded was the surf spot")
     wind_speed = models.FloatField(null=True, blank=True, help_text="Wind speed in km/h")
+
+    # Environment type for surf sessions (Ocean/Riverwave/Poolwave)
+    environment = models.CharField(
+        max_length=10,
+        choices=ENVIRONMENT_CHOICES,
+        default='OCEAN',
+        blank=True,
+        help_text="Surf environment type (Ocean/Riverwave/Poolwave)"
+    )
+
+    # Riverwave-specific fields
+    wave_power = models.CharField(
+        max_length=10,
+        choices=WAVE_POWER_CHOICES,
+        blank=True,
+        help_text="Wave power rating for riverwaves"
+    )
+    average_wait_time = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Average wait time per session in minutes (for riverwaves)"
+    )
+    flow_rate = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Flow rate in m³/s (optional, for riverwaves)"
+    )
+    water_level = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Water level in meters above sea level (optional, for riverwaves)"
+    )
 
     def __str__(self): return f"{self.trip.name} - {self.name}"
 

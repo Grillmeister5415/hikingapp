@@ -203,6 +203,47 @@
           </template>
         </div>
       </div>
+
+      <!-- River & Pool subsections -->
+      <div v-if="activeCategory === 'SURFING' && (totals.surfing?.riverwave || totals.surfing?.poolwave)" class="section">
+        <!-- Riverwave subsection -->
+        <div v-if="totals.surfing?.riverwave && totals.surfing.riverwave.count > 0" class="environment-subsection">
+          <h3 class="subsection-title">🏞️ Riverwave</h3>
+          <div class="stats-grid">
+            <div class="stat-card environment-riverwave">
+              <span class="value">{{ formatNumber(totals.surfing.riverwave.count) }}</span>
+              <span class="label">Sessions</span>
+            </div>
+            <div class="stat-card environment-riverwave">
+              <span class="value">{{ formatDurationFromSeconds(totals.surfing.riverwave.total_time) }}</span>
+              <span class="label">Total Time</span>
+            </div>
+            <div class="stat-card environment-riverwave">
+              <span class="value">{{ totals.surfing.riverwave.most_surfed || 'N/A' }}</span>
+              <span class="label">Most Surfed</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Poolwave subsection -->
+        <div v-if="totals.surfing?.poolwave && totals.surfing.poolwave.count > 0" class="environment-subsection">
+          <h3 class="subsection-title">🏊 Poolwave</h3>
+          <div class="stats-grid">
+            <div class="stat-card environment-poolwave">
+              <span class="value">{{ formatNumber(totals.surfing.poolwave.count) }}</span>
+              <span class="label">Sessions</span>
+            </div>
+            <div class="stat-card environment-poolwave">
+              <span class="value">{{ formatDurationFromSeconds(totals.surfing.poolwave.total_time) }}</span>
+              <span class="label">Total Time</span>
+            </div>
+            <div class="stat-card environment-poolwave">
+              <span class="value">{{ totals.surfing.poolwave.most_surfed || 'N/A' }}</span>
+              <span class="label">Most Surfed</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </template>
 
 
@@ -513,11 +554,11 @@ const downloadCSV = async () => {
       headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Stage Name", "Stage Date", "Distance (km)", "Elevation Gain (m)", "Elevation Loss (m)", "Duration", "Stage Description", "Creator", "Participants"];
       filename = "hiking_export.csv";
     } else if (activeCategory.value === 'SURFING') {
-      headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Country", "Stage Name", "Stage Date", "Surf Spot", "Time in Water", "Waves Caught", "Surfboard Used", "Wave Quality", "Wave Height (m)", "Water Temp (°C)", "Tide Stage", "Tide Movement", "Swell Direction", "Wind Direction", "Wave Energy", "Stage Description", "Creator", "Participants"];
+      headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Country", "Stage Name", "Stage Date", "Environment", "Surf Spot", "Time in Water", "Waves Caught", "Surfboard Used", "Wave Quality", "Wave Height (m)", "Water Temp (°C)", "Wave Power", "Avg Wait Time (min)", "Flow Rate (m³/s)", "Water Level (m)", "Tide Stage", "Tide Movement", "Swell Direction", "Wind Direction", "Wave Energy", "Stage Description", "Creator", "Participants"];
       filename = "surfing_export.csv";
     } else {
       // Combined export includes all fields
-      headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Country", "Stage Name", "Stage Date", "Activity Type", "Distance (km)", "Elevation Gain (m)", "Elevation Loss (m)", "Duration", "Surf Spot", "Time in Water", "Waves Caught", "Surfboard Used", "Wave Quality", "Wave Height (m)", "Water Temp (°C)", "Tide Stage", "Tide Movement", "Swell Direction", "Wind Direction", "Wave Energy", "Stage Description", "Creator", "Participants"];
+      headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Country", "Stage Name", "Stage Date", "Activity Type", "Distance (km)", "Elevation Gain (m)", "Elevation Loss (m)", "Duration", "Environment", "Surf Spot", "Time in Water", "Waves Caught", "Surfboard Used", "Wave Quality", "Wave Height (m)", "Water Temp (°C)", "Wave Power", "Avg Wait Time (min)", "Flow Rate (m³/s)", "Water Level (m)", "Tide Stage", "Tide Movement", "Swell Direction", "Wind Direction", "Wave Energy", "Stage Description", "Creator", "Participants"];
       filename = "all_activities_export.csv";
     }
 
@@ -554,6 +595,7 @@ const downloadCSV = async () => {
           } else if (activeCategory.value === 'SURFING') {
             const timeInWater = stage.time_in_water || '00:00:00';
             const waveQuality = stage.wave_quality ? '⭐'.repeat(stage.wave_quality) : '';
+            const environment = stage.environment || 'OCEAN';
 
             row = [
               `"${trip.name}"`,
@@ -562,6 +604,7 @@ const downloadCSV = async () => {
               `"${trip.country || ''}"`,
               `"${stage.name}"`,
               stage.date,
+              environment,
               `"${stage.surf_spot || ''}"`,
               timeInWater,
               stage.waves_caught || 0,
@@ -569,6 +612,10 @@ const downloadCSV = async () => {
               waveQuality,
               stage.wave_height || '',
               stage.water_temperature || '',
+              stage.wave_power || '',
+              stage.average_wait_time || '',
+              stage.flow_rate || '',
+              stage.water_level || '',
               stage.tide_stage || '',
               stage.tide_movement || '',
               stage.swell_direction || '',
@@ -586,6 +633,7 @@ const downloadCSV = async () => {
             const duration = stage.calculated_duration || stage.manual_duration || '00:00:00';
             const timeInWater = stage.time_in_water || '00:00:00';
             const waveQuality = stage.wave_quality ? '⭐'.repeat(stage.wave_quality) : '';
+            const environment = stage.environment || '';
 
             row = [
               `"${trip.name}"`,
@@ -599,6 +647,7 @@ const downloadCSV = async () => {
               gain,
               loss,
               duration,
+              environment,
               `"${stage.surf_spot || ''}"`,
               timeInWater,
               stage.waves_caught || 0,
@@ -606,6 +655,10 @@ const downloadCSV = async () => {
               waveQuality,
               stage.wave_height || '',
               stage.water_temperature || '',
+              stage.wave_power || '',
+              stage.average_wait_time || '',
+              stage.flow_rate || '',
+              stage.water_level || '',
               stage.tide_stage || '',
               stage.tide_movement || '',
               stage.swell_direction || '',
@@ -964,6 +1017,28 @@ const downloadCSV = async () => {
 
 .activity-surfing {
   border-left: 4px solid var(--color-surfing);
+}
+
+/* Environment subsections */
+.environment-subsection {
+  margin-bottom: var(--space-8);
+}
+
+.subsection-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.environment-riverwave {
+  border-left: 4px solid #2F855A;
+}
+
+.environment-poolwave {
+  border-left: 4px solid #2C5282;
 }
 
 /* Year filter styling */

@@ -150,6 +150,11 @@
 
         <!-- Surf Stats - Redesigned -->
         <div v-if="stage.activity_type === 'SURFING'" class="surf-session">
+          <!-- Environment Badge -->
+          <div v-if="stage.environment" class="environment-badge" :class="`env-${stage.environment?.toLowerCase()}`">
+            {{ getEnvironmentLabel(stage.environment) }}
+          </div>
+
           <!-- Session Overview -->
           <div class="session-overview">
             <div class="overview-item">
@@ -181,8 +186,8 @@
             <div class="quality-label">Wave Quality</div>
           </div>
 
-          <!-- Conditions Section -->
-          <div class="conditions-grid">
+          <!-- Ocean Conditions -->
+          <div v-if="!stage.environment || stage.environment === 'OCEAN'" class="conditions-grid">
             <!-- Wave Conditions Card -->
             <BaseCard variant="flat" padding="small" v-if="stage.wave_height || stage.wave_energy || stage.surf_spot">
               <div class="condition-card">
@@ -259,6 +264,57 @@
                   <div v-if="getFormattedTide(stage.tide_stage, stage.tide_movement)" class="condition-row">
                     <span class="condition-label">Tide</span>
                     <span class="condition-value">{{ getFormattedTide(stage.tide_stage, stage.tide_movement) }}</span>
+                  </div>
+                </div>
+              </div>
+            </BaseCard>
+          </div>
+
+          <!-- Riverwave Conditions -->
+          <div v-if="stage.environment === 'RIVERWAVE'" class="conditions-grid">
+            <BaseCard variant="flat" padding="small">
+              <div class="condition-card">
+                <h5 class="condition-title">
+                  <span>🏞️ Riverwave Infos</span>
+                  <span v-if="stage.wave_power" class="wave-power-badge" :class="`power-${stage.wave_power?.toLowerCase()}`">
+                    {{ getWavePowerLabel(stage.wave_power) }}
+                  </span>
+                </h5>
+                <div class="condition-items">
+                  <div v-if="stage.surf_spot" class="condition-row">
+                    <span class="condition-label">Riverwave</span>
+                    <span class="condition-value">{{ stage.surf_spot }}</span>
+                  </div>
+                  <div v-if="stage.average_wait_time" class="condition-row">
+                    <span class="condition-label">Avg Wait Time</span>
+                    <span class="condition-value">{{ stage.average_wait_time }} min</span>
+                  </div>
+                  <div v-if="stage.flow_rate" class="condition-row">
+                    <span class="condition-label">Flow Rate</span>
+                    <span class="condition-value">{{ stage.flow_rate }} m³/s</span>
+                  </div>
+                  <div v-if="stage.water_level" class="condition-row">
+                    <span class="condition-label">Water Level</span>
+                    <span class="condition-value">{{ stage.water_level }} m</span>
+                  </div>
+                  <div v-if="stage.water_temperature" class="condition-row">
+                    <span class="condition-label">Temperature</span>
+                    <span class="condition-value">{{ stage.water_temperature }}°C</span>
+                  </div>
+                </div>
+              </div>
+            </BaseCard>
+          </div>
+
+          <!-- Poolwave Conditions -->
+          <div v-if="stage.environment === 'POOLWAVE'" class="conditions-grid">
+            <BaseCard variant="flat" padding="small">
+              <div class="condition-card">
+                <h5 class="condition-title">🏊 Poolwave Session</h5>
+                <div class="condition-items">
+                  <div v-if="stage.surf_spot" class="condition-row">
+                    <span class="condition-label">Pool</span>
+                    <span class="condition-value">{{ stage.surf_spot }}</span>
                   </div>
                 </div>
               </div>
@@ -637,6 +693,23 @@ const formatDate = (dateString) => {
 };
 
 const formatDuration = formatDurationHoursMinutes;
+
+// Environment helper functions
+const getEnvironmentLabel = (env) => {
+  const labels = { 'OCEAN': '🌊 Ocean', 'RIVERWAVE': '🏞️ Riverwave', 'POOLWAVE': '🏊 Poolwave' };
+  return labels[env] || '🌊 Ocean';
+};
+
+const getWavePowerLabel = (power) => {
+  const labels = {
+    'DEAD': 'Dead',
+    'SOFT': 'Soft',
+    'FUN': 'Fun',
+    'JUICY': 'Juicy',
+    'BEAST_MODE': 'Beast Mode'
+  };
+  return labels[power] || power;
+};
 
 const handleDeleteStage = async (stageId) => {
   if (window.confirm("Sind Sie sicher, dass Sie diese Etappe löschen möchten?")) {
@@ -1212,6 +1285,73 @@ a:hover {
 
 .wave-huge {
   background-color: #F56565; /* Red */
+}
+
+/* Environment Badge */
+.environment-badge {
+  display: inline-block;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-4);
+  color: white;
+}
+
+.env-ocean {
+  background-color: var(--color-surfing);
+}
+
+.env-riverwave {
+  background-color: #2F855A;
+}
+
+.env-poolwave {
+  background-color: #2C5282;
+}
+
+/* Wave Power Badge */
+.wave-power-badge {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  color: white;
+}
+
+.power-dead {
+  background-color: #718096; /* Gray */
+}
+
+.power-soft {
+  background-color: #90CDF4; /* Light Blue */
+}
+
+.power-fun {
+  background-color: #48BB78; /* Green */
+}
+
+.power-juicy {
+  background-color: #ED8936; /* Orange */
+}
+
+.power-beast_mode {
+  background-color: #F56565; /* Red */
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(245, 101, 101, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(245, 101, 101, 1);
+  }
 }
 
 .wave-suicidal {

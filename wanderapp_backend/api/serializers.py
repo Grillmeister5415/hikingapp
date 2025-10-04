@@ -124,7 +124,9 @@ class StageSerializer(serializers.ModelSerializer):
             # Surf-specific fields
             'surf_spot', 'surf_spot_obj', 'surf_spot_id', 'time_in_water', 'surfboard_used', 'surfboard', 'surfboard_id', 'wave_height', 'wave_quality',
             'water_temperature', 'waves_caught', 'tide_stage', 'tide_movement',
-            'swell_direction', 'wind_direction', 'wave_energy', 'crowd_factor', 'wind_speed'
+            'swell_direction', 'wind_direction', 'wave_energy', 'crowd_factor', 'wind_speed',
+            # Environment fields (Ocean/Riverwave/Poolwave)
+            'environment', 'wave_power', 'average_wait_time', 'flow_rate', 'water_level'
         ]
         extra_kwargs = { 'trip': {'required': False} }
 
