@@ -47,26 +47,33 @@
               <button
                 type="button"
                 :class="['segment', { active: stage.environment === 'OCEAN' }]"
-                @click="stage.environment = 'OCEAN'"
+                :disabled="initialEnvironment && initialEnvironment !== 'OCEAN'"
+                @click="selectEnvironment('OCEAN')"
               >
                 Ocean
               </button>
               <button
                 type="button"
                 :class="['segment', { active: stage.environment === 'RIVERWAVE' }]"
-                @click="stage.environment = 'RIVERWAVE'"
+                :disabled="initialEnvironment && initialEnvironment !== 'RIVERWAVE'"
+                @click="selectEnvironment('RIVERWAVE')"
               >
                 Riverwave
               </button>
               <button
                 type="button"
                 :class="['segment', { active: stage.environment === 'POOLWAVE' }]"
-                @click="stage.environment = 'POOLWAVE'"
+                :disabled="initialEnvironment && initialEnvironment !== 'POOLWAVE'"
+                @click="selectEnvironment('POOLWAVE')"
               >
                 Poolwave
               </button>
             </div>
           </div>
+
+          <p v-if="initialEnvironment" class="environment-lock-hint">
+            Environment can’t be changed once the session is created.
+          </p>
 
           <!-- Shared Core Fields -->
           <div class="input-wrapper">
@@ -372,11 +379,18 @@ const router = useRouter();
 const stageId = ref(route.params.id);
 
 const stage = ref(null);
+const initialEnvironment = ref(null);
 const isLoading = ref(true);
 const error = ref(null);
 const isSubmitting = ref(false);
 const tripStartDate = ref('');
 const tripEndDate = ref('');
+
+const selectEnvironment = (env) => {
+  if (!stage.value) return;
+  if (initialEnvironment.value && env !== initialEnvironment.value) return;
+  stage.value.environment = env;
+};
 
 onMounted(async () => {
   try {
@@ -393,6 +407,7 @@ onMounted(async () => {
     if (!stage.value.environment) {
       stage.value.environment = 'OCEAN';
     }
+    initialEnvironment.value = stage.value.environment;
 
     // Load trip data for date constraints
     const tripResponse = await api.get(`/trips/${stage.value.trip}/`);
@@ -486,6 +501,8 @@ const handleSubmit = async () => {
       }
     }
 
+    const environmentValue = initialEnvironment.value || stage.value.environment;
+
     const payload = {
       name: stage.value.name,
       date: stage.value.date,
@@ -513,12 +530,26 @@ const handleSubmit = async () => {
       wind_speed: stage.value.wind_speed ? parseFloat(stage.value.wind_speed) : null,
 
       // Environment fields
-      environment: stage.value.environment,
+      environment: environmentValue,
       wave_power: stage.value.wave_power,
       average_wait_time: stage.value.average_wait_time ? parseInt(stage.value.average_wait_time) : null,
       flow_rate: stage.value.flow_rate ? parseFloat(stage.value.flow_rate) : null,
       water_level: stage.value.water_level ? parseFloat(stage.value.water_level) : null
     };
+
+    // Ensure only fields relevant to the original environment are persisted
+    if (environmentValue !== 'OCEAN') {
+      payload.wave_height = null;
+      payload.tide_stage = '';
+      payload.tide_movement = '';
+    }
+
+    if (environmentValue !== 'RIVERWAVE') {
+      payload.wave_power = '';
+      payload.average_wait_time = null;
+      payload.flow_rate = null;
+      payload.water_level = null;
+    }
 
     await api.patch(`/stages/${stageId.value}/`, payload);
     clearDashboardCache(); // Clear cache so dashboard reflects changes
@@ -665,6 +696,22 @@ h1 {
   background: var(--color-primary);
   color: white;
   box-shadow: var(--shadow-sm);
+}
+
+.segment:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.segment:disabled:hover {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.environment-lock-hint {
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 
 /* Environment Groups */

@@ -537,6 +537,20 @@ const handleSubmit = async () => {
       track_points: []
     };
 
+    // Ensure only fields relevant to the selected environment are persisted
+    if (environment.value !== 'OCEAN') {
+      payload.wave_height = null;
+      payload.tide_stage = '';
+      payload.tide_movement = '';
+    }
+
+    if (environment.value !== 'RIVERWAVE') {
+      payload.wave_power = '';
+      payload.average_wait_time = null;
+      payload.flow_rate = null;
+      payload.water_level = null;
+    }
+
     await api.post('/stages/', payload);
     clearDashboardCache(); // Clear cache so dashboard reflects new surf session
     router.push(`/trip/${tripId.value}`);
