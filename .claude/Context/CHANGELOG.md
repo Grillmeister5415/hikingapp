@@ -56,17 +56,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added environment segmented control to surf session forms allowing users to select between Ocean, Riverwave, or Pool
 - Environment-specific field groups show/hide based on selection for optimized data entry
 - **Ocean (default):** Maintains all existing fields (tide, wave height, swell/wind direction, wave energy)
-- **Riverwave:** New fields for river surfing (Wave Power dropdown, Avg Wait Time, Flow Rate, Water Level)
+- **Riverwave:** New fields for river surfing (Wave Power dropdown, Avg Wait Time, Flow Rate, Water Level, Water Quality)
 - **Poolwave:** Minimal fields (shared core fields only)
 - Shared core fields across all environments: Surf Spot/Name, Time in Water, Waves Caught, Surfboard, Crowd Factor
 - Field reuse strategy: wave_quality, water_temperature, external_link shared where semantically appropriate
 - Dashboard integration: River & Pool subsections under Surfing tab showing session count, total time, and most surfed spot
 - Trip detail display: Environment badge with conditional rendering of environment-specific conditions
-- CSV export: New columns for Environment, Wave Power, Avg Wait Time (min), Flow Rate (m³/s), Water Level (m)
+- CSV export: New columns for Environment, Wave Power, Avg Wait Time (min), Flow Rate (m³/s), Water Level (m), Water Quality
 - Backward compatibility: Existing sessions default to OCEAN environment
 - **Technical Details:**
   - Backend: Added `environment` field (OCEAN/RIVERWAVE/POOLWAVE) with OCEAN default
-  - Backend: Added riverwave fields: `wave_power` (Dead/Soft/Fun/Juicy/Beast Mode), `average_wait_time` (minutes), `flow_rate` (m³/s), `water_level` (m)
+  - Backend: Added riverwave fields: `wave_power` (Dead/Soft/Fun/Juicy/Beast Mode), `average_wait_time` (minutes), `flow_rate` (m³/s), `water_level` (m), `water_quality` (Sauber → Absolute Kloake)
   - Backend: StageSerializer includes all new environment fields
   - Backend: UserStatsView calculates separate riverwave_stats and poolwave_stats with session count, total time, most surfed
   - Frontend: SurfStageCreate/Edit use segmented control pattern with reactive environment switching
@@ -79,12 +79,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 **Components Modified (Surf Environments):**
 - `wanderapp_backend/api/models.py` - Added environment field and riverwave-specific fields to Stage model
 - `wanderapp_backend/api/serializers.py` - Updated StageSerializer with new environment fields
+- `wanderapp_backend/api/migrations/0024_stage_water_quality.py` - Added persistent water quality choice field for river sessions
 - `wanderapp_backend/api/views.py` - Extended UserStatsView with riverwave and poolwave aggregations
 - `wanderapp_backend/api/migrations/0023_*.py` - Database migration for new fields
-- `wanderapp-frontend/src/components/SurfStageCreate.vue` - Added environment selector and conditional field groups
-- `wanderapp-frontend/src/components/SurfStageEdit.vue` - Added environment selector and conditional field groups
-- `wanderapp-frontend/src/components/TripDetail.vue` - Added environment badge and conditional display logic
-- `wanderapp-frontend/src/components/UserDashboard.vue` - Added River & Pool subsections and CSV export columns
+- `wanderapp-frontend/src/components/SurfStageCreate.vue` - Added environment selector, conditional field groups, and riverwave water quality dropdown
+- `wanderapp-frontend/src/components/SurfStageEdit.vue` - Added environment selector, conditional field groups, and persisted riverwave water quality editing
+- `wanderapp-frontend/src/components/TripDetail.vue` - Added environment badge and conditional display logic (including riverwave water quality labels)
+- `wanderapp-frontend/src/components/UserDashboard.vue` - Added River & Pool subsections and CSV export columns (water quality tracked for exports)
 
 **Components Modified:**
 - `wanderapp_backend/api/views.py` - Added DashboardOverviewView, updated UserStatsView and DashboardDataView with year filtering and trip_count fields

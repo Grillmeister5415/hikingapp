@@ -134,6 +134,12 @@ class Stage(models.Model):
         ('JUICY', 'Juicy'),
         ('BEAST_MODE', 'Beast Mode'),
     ]
+    WATER_QUALITY_CHOICES = [
+        ('CLEAN', 'Sauber'),
+        ('SLIGHTLY_POLLUTED', 'Leicht verschmutzt'),
+        ('HEAVILY_POLLUTED', 'Stark verschmutzt'),
+        ('ABSOLUTE_SEWER', 'Absolute Kloake'),
+    ]
     
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='stages')
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -210,6 +216,12 @@ class Stage(models.Model):
         null=True,
         blank=True,
         help_text="Water level in meters above sea level (optional, for riverwaves)"
+    )
+    water_quality = models.CharField(
+        max_length=20,
+        choices=WATER_QUALITY_CHOICES,
+        blank=True,
+        help_text="Water quality classification for riverwaves"
     )
 
     def __str__(self): return f"{self.trip.name} - {self.name}"

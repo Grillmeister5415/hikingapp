@@ -327,6 +327,19 @@
             />
 
             <BaseInput
+              id="water_quality"
+              type="select"
+              v-model="stage.water_quality"
+              label="Wasserqualität"
+            >
+              <option value="">Auswählen...</option>
+              <option value="CLEAN">Sauber</option>
+              <option value="SLIGHTLY_POLLUTED">Leicht verschmutzt</option>
+              <option value="HEAVILY_POLLUTED">Stark verschmutzt</option>
+              <option value="ABSOLUTE_SEWER">Absolute Kloake</option>
+            </BaseInput>
+
+            <BaseInput
               id="external_link"
               type="url"
               v-model="stage.external_link"
@@ -408,6 +421,10 @@ onMounted(async () => {
       stage.value.environment = 'OCEAN';
     }
     initialEnvironment.value = stage.value.environment;
+
+    if (typeof stage.value.water_quality === 'undefined' || stage.value.water_quality === null) {
+      stage.value.water_quality = '';
+    }
 
     // Load trip data for date constraints
     const tripResponse = await api.get(`/trips/${stage.value.trip}/`);
@@ -534,7 +551,8 @@ const handleSubmit = async () => {
       wave_power: stage.value.wave_power,
       average_wait_time: stage.value.average_wait_time ? parseInt(stage.value.average_wait_time) : null,
       flow_rate: stage.value.flow_rate ? parseFloat(stage.value.flow_rate) : null,
-      water_level: stage.value.water_level ? parseFloat(stage.value.water_level) : null
+      water_level: stage.value.water_level ? parseFloat(stage.value.water_level) : null,
+      water_quality: stage.value.water_quality
     };
 
     // Ensure only fields relevant to the original environment are persisted
@@ -549,6 +567,7 @@ const handleSubmit = async () => {
       payload.average_wait_time = null;
       payload.flow_rate = null;
       payload.water_level = null;
+      payload.water_quality = '';
     }
 
     await api.patch(`/stages/${stageId.value}/`, payload);

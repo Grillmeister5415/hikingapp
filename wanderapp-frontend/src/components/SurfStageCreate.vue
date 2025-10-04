@@ -319,7 +319,7 @@
           <BaseInput
             id="water_quality"
             type="select"
-            v-model="water_quality_display"
+            v-model="water_quality"
             label="Wasserqualität"
           >
             <option value="">Auswählen...</option>
@@ -410,7 +410,7 @@ const wave_power = ref('');
 const average_wait_time = ref(null);
 const flow_rate = ref(null);
 const water_level = ref(null);
-const water_quality_display = ref(''); // Frontend-only field
+const water_quality = ref('');
 
 const error = ref(null);
 const isSubmitting = ref(false);
@@ -532,6 +532,7 @@ const handleSubmit = async () => {
       average_wait_time: average_wait_time.value ? parseInt(average_wait_time.value) : null,
       flow_rate: flow_rate.value ? parseFloat(flow_rate.value) : null,
       water_level: water_level.value ? parseFloat(water_level.value) : null,
+      water_quality: water_quality.value,
 
       // No track points for surfing
       track_points: []
@@ -549,6 +550,7 @@ const handleSubmit = async () => {
       payload.average_wait_time = null;
       payload.flow_rate = null;
       payload.water_level = null;
+      payload.water_quality = '';
     }
 
     await api.post('/stages/', payload);

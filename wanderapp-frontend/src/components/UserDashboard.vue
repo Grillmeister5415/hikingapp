@@ -488,6 +488,16 @@ const formatNumber = (num) => {
 const formatDuration = formatDurationHoursMinutes;
 const formatDurationFromSeconds = (seconds) => formatDurationFromSecondsUtil(seconds || 0);
 
+const getWaterQualityLabel = (quality) => {
+  const labels = {
+    'CLEAN': 'Sauber',
+    'SLIGHTLY_POLLUTED': 'Leicht verschmutzt',
+    'HEAVILY_POLLUTED': 'Stark verschmutzt',
+    'ABSOLUTE_SEWER': 'Absolute Kloake'
+  };
+  return labels[quality] || quality;
+};
+
 const formatTemperature = (temp) => {
   if (temp === null || temp === undefined) return 'N/A';
   return `${temp}°C`;
@@ -554,11 +564,11 @@ const downloadCSV = async () => {
       headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Stage Name", "Stage Date", "Distance (km)", "Elevation Gain (m)", "Elevation Loss (m)", "Duration", "Stage Description", "Creator", "Participants"];
       filename = "hiking_export.csv";
     } else if (activeCategory.value === 'SURFING') {
-      headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Country", "Stage Name", "Stage Date", "Environment", "Surf Spot", "Time in Water", "Waves Caught", "Surfboard Used", "Wave Quality", "Wave Height (m)", "Water Temp (°C)", "Wave Power", "Avg Wait Time (min)", "Flow Rate (m³/s)", "Water Level (m)", "Tide Stage", "Tide Movement", "Swell Direction", "Wind Direction", "Wave Energy", "Stage Description", "Creator", "Participants"];
+      headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Country", "Stage Name", "Stage Date", "Environment", "Surf Spot", "Time in Water", "Waves Caught", "Surfboard Used", "Wave Quality", "Wave Height (m)", "Water Temp (°C)", "Wave Power", "Avg Wait Time (min)", "Flow Rate (m³/s)", "Water Level (m)", "Water Quality", "Tide Stage", "Tide Movement", "Swell Direction", "Wind Direction", "Wave Energy", "Stage Description", "Creator", "Participants"];
       filename = "surfing_export.csv";
     } else {
       // Combined export includes all fields
-      headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Country", "Stage Name", "Stage Date", "Activity Type", "Distance (km)", "Elevation Gain (m)", "Elevation Loss (m)", "Duration", "Environment", "Surf Spot", "Time in Water", "Waves Caught", "Surfboard Used", "Wave Quality", "Wave Height (m)", "Water Temp (°C)", "Wave Power", "Avg Wait Time (min)", "Flow Rate (m³/s)", "Water Level (m)", "Tide Stage", "Tide Movement", "Swell Direction", "Wind Direction", "Wave Energy", "Stage Description", "Creator", "Participants"];
+      headers = ["Trip Name", "Trip Start Date", "Trip End Date", "Country", "Stage Name", "Stage Date", "Activity Type", "Distance (km)", "Elevation Gain (m)", "Elevation Loss (m)", "Duration", "Environment", "Surf Spot", "Time in Water", "Waves Caught", "Surfboard Used", "Wave Quality", "Wave Height (m)", "Water Temp (°C)", "Wave Power", "Avg Wait Time (min)", "Flow Rate (m³/s)", "Water Level (m)", "Water Quality", "Tide Stage", "Tide Movement", "Swell Direction", "Wind Direction", "Wave Energy", "Stage Description", "Creator", "Participants"];
       filename = "all_activities_export.csv";
     }
 
@@ -616,6 +626,7 @@ const downloadCSV = async () => {
               stage.average_wait_time || '',
               stage.flow_rate || '',
               stage.water_level || '',
+              stage.water_quality ? getWaterQualityLabel(stage.water_quality) : '',
               stage.tide_stage || '',
               stage.tide_movement || '',
               stage.swell_direction || '',
@@ -659,6 +670,7 @@ const downloadCSV = async () => {
               stage.average_wait_time || '',
               stage.flow_rate || '',
               stage.water_level || '',
+              stage.water_quality ? getWaterQualityLabel(stage.water_quality) : '',
               stage.tide_stage || '',
               stage.tide_movement || '',
               stage.swell_direction || '',

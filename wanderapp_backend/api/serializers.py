@@ -126,7 +126,7 @@ class StageSerializer(serializers.ModelSerializer):
             'water_temperature', 'waves_caught', 'tide_stage', 'tide_movement',
             'swell_direction', 'wind_direction', 'wave_energy', 'crowd_factor', 'wind_speed',
             # Environment fields (Ocean/Riverwave/Poolwave)
-            'environment', 'wave_power', 'average_wait_time', 'flow_rate', 'water_level'
+            'environment', 'wave_power', 'average_wait_time', 'flow_rate', 'water_level', 'water_quality'
         ]
         extra_kwargs = { 'trip': {'required': False} }
 

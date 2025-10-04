@@ -297,6 +297,10 @@
                     <span class="condition-label">Water Level</span>
                     <span class="condition-value">{{ stage.water_level }} m</span>
                   </div>
+                  <div v-if="stage.water_quality" class="condition-row">
+                    <span class="condition-label">Water Quality</span>
+                    <span class="condition-value">{{ getWaterQualityLabel(stage.water_quality) }}</span>
+                  </div>
                   <div v-if="stage.water_temperature" class="condition-row">
                     <span class="condition-label">Temperature</span>
                     <span class="condition-value">{{ stage.water_temperature }}°C</span>
@@ -709,6 +713,16 @@ const getWavePowerLabel = (power) => {
     'BEAST_MODE': 'Beast Mode'
   };
   return labels[power] || power;
+};
+
+const getWaterQualityLabel = (quality) => {
+  const labels = {
+    'CLEAN': 'Sauber',
+    'SLIGHTLY_POLLUTED': 'Leicht verschmutzt',
+    'HEAVILY_POLLUTED': 'Stark verschmutzt',
+    'ABSOLUTE_SEWER': 'Absolute Kloake'
+  };
+  return labels[quality] || quality;
 };
 
 const handleDeleteStage = async (stageId) => {
