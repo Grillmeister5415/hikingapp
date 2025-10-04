@@ -132,6 +132,7 @@ import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import ParticipantSelector from './ParticipantSelector.vue';
 import { useTabAwareNavigation } from '../utils/navigation.js';
+import { clearDashboardCache } from '../store';
 import BaseButton from './base/BaseButton.vue';
 import BaseInput from './base/BaseInput.vue';
 
@@ -258,6 +259,7 @@ const handleSubmit = async () => {
     }
 
     await api.post('/trips/', payload);
+    clearDashboardCache(); // Clear cache so dashboard shows new trip
     const tripListRoute = getTripListRoute();
     router.push(tripListRoute);
   } catch (err) {

@@ -216,20 +216,38 @@ class UserStatsView(APIView):
             try: user = User.objects.get(pk=pk)
             except User.DoesNotExist: return Response(status=status.HTTP_404_NOT_FOUND)
         else: user = request.user
-        
-        # Get activity type filter from query parameters
+
+        # Get filters from query parameters
         activity_type = request.GET.get('activity_type')
-        
+        year = request.GET.get('year')
+
         user_stages = Stage.objects.filter(trip__participants=user).distinct()
-        
+
         # Apply activity type filter if provided
         if activity_type:
             user_stages = user_stages.filter(activity_type=activity_type)
-        
-        # Filter trips by activity type if provided
+
+        # Apply year filter if provided
+        if year:
+            try:
+                year_int = int(year)
+                user_stages = user_stages.filter(date__year=year_int)
+            except ValueError:
+                pass  # Invalid year, ignore filter
+
+        # Filter trips by activity type and year if provided
         user_trips = Trip.objects.filter(participants=user).distinct()
         if activity_type:
             user_trips = user_trips.filter(activity_type=activity_type)
+        if year:
+            try:
+                year_int = int(year)
+                # Include trips if start OR end date is in the year
+                user_trips = user_trips.filter(
+                    Q(start_date__year=year_int) | Q(end_date__year=year_int)
+                )
+            except ValueError:
+                pass  # Invalid year, ignore filter
         trip_count = user_trips.count()
         stage_count = user_stages.count()
         
@@ -244,7 +262,9 @@ class UserStatsView(APIView):
         # Activity-specific stats
         hiking_stages = user_stages.filter(activity_type='HIKING')
         surfing_stages = user_stages.filter(activity_type='SURFING')
-        
+        hiking_trips = user_trips.filter(activity_type='HIKING')
+        surfing_trips = user_trips.filter(activity_type='SURFING')
+
         hiking_stats = hiking_stages.aggregate(
             count=Count('id'),
             total_km=Sum(Coalesce('calculated_length_km', 'manual_length_km', Value(0.0))),
@@ -252,7 +272,7 @@ class UserStatsView(APIView):
             total_loss=Sum(Coalesce('calculated_elevation_loss', Value(0))),
             total_duration=Sum(Coalesce('calculated_duration', 'manual_duration', Value(timedelta(0))))
         )
-        
+
         surfing_stats = surfing_stages.aggregate(
             count=Count('id'),
             total_time_in_water=Sum(Coalesce('time_in_water', Value(timedelta(0)))),
@@ -280,14 +300,18 @@ class UserStatsView(APIView):
             
             # Activity-specific stats
             'hiking': {
-                'count': hiking_stats['count'] or 0,
+                'trip_count': hiking_trips.count(),
+                'stage_count': hiking_stats['count'] or 0,
+                'count': hiking_stats['count'] or 0,  # Keep for backward compatibility
                 'total_km': round(hiking_stats.get('total_km') or 0, 2),
                 'total_elevation': hiking_stats.get('total_elevation') or 0,
                 'total_loss': hiking_stats.get('total_loss') or 0,
                 'total_duration': (hiking_stats.get('total_duration') or timedelta(0)).total_seconds(),
             },
             'surfing': {
-                'count': surfing_stats['count'] or 0,
+                'trip_count': surfing_trips.count(),
+                'stage_count': surfing_stats['count'] or 0,
+                'count': surfing_stats['count'] or 0,  # Keep for backward compatibility
                 'total_time_in_water': (surfing_stats.get('total_time_in_water') or timedelta(0)).total_seconds(),
                 'total_waves_caught': surfing_stats.get('total_waves_caught') or 0,
                 'most_used_surfboard': most_used_board,
@@ -305,15 +329,24 @@ class DashboardDataView(APIView):
             try: user = User.objects.get(pk=pk)
             except User.DoesNotExist: return Response(status=status.HTTP_404_NOT_FOUND)
         else: user = request.user
-        
-        # Get activity type filter from query parameters
+
+        # Get filters from query parameters
         activity_type = request.GET.get('activity_type')
-        
+        year = request.GET.get('year')
+
         user_stages = Stage.objects.filter(trip__participants=user).distinct()
-        
+
         # Apply activity type filter if provided
         if activity_type:
             user_stages = user_stages.filter(activity_type=activity_type)
+
+        # Apply year filter if provided
+        if year:
+            try:
+                year_int = int(year)
+                user_stages = user_stages.filter(date__year=year_int)
+            except ValueError:
+                pass  # Invalid year, ignore filter
         
         # Overall records
         longest_stage_km = user_stages.order_by(Coalesce('calculated_length_km', 'manual_length_km', Value(0)).desc()).first()
@@ -334,19 +367,48 @@ class DashboardDataView(APIView):
         most_waves_caught = surfing_stages.order_by(Coalesce('waves_caught', Value(0)).desc()).first()
         best_wave_quality = surfing_stages.order_by(Coalesce('wave_quality', Value(0)).desc()).first()
         
-        # Filter trips by activity type if provided
+        # Filter trips by activity type and year if provided
         user_trips = Trip.objects.filter(participants=user)
         if activity_type:
             user_trips = user_trips.filter(activity_type=activity_type)
+        if year:
+            try:
+                year_int = int(year)
+                # Include trips if start OR end date is in the year
+                user_trips = user_trips.filter(
+                    Q(start_date__year=year_int) | Q(end_date__year=year_int)
+                )
+            except ValueError:
+                pass  # Invalid year, ignore filter
         
-        top_partners = User.objects.filter(
+        top_partners_data = User.objects.filter(
             participated_trips__in=user_trips
         ).exclude(pk=user.pk).annotate(
-            hike_count=Count('participated_trips', filter=Q(participated_trips__in=user_trips))
-        ).order_by('-hike_count')[:3]
-        
+            total_trips=Count('participated_trips', filter=Q(participated_trips__in=user_trips), distinct=True),
+            hiking_count=Count('participated_trips', filter=Q(participated_trips__in=user_trips, participated_trips__activity_type='HIKING'), distinct=True),
+            surfing_count=Count('participated_trips', filter=Q(participated_trips__in=user_trips, participated_trips__activity_type='SURFING'), distinct=True)
+        ).order_by('-total_trips')[:3]
+
+        # Build partner data with last_together info
+        top_partners = []
+        for partner in top_partners_data:
+            # Find most recent trip together
+            last_trip_together = user_trips.filter(participants=partner).order_by('-start_date').first()
+            top_partners.append({
+                'id': partner.id,
+                'username': partner.username,
+                'hiking_count': partner.hiking_count,
+                'surfing_count': partner.surfing_count,
+                'hike_count': partner.total_trips,  # Keep for backward compatibility
+                'last_together': {
+                    'date': last_trip_together.start_date.isoformat() if last_trip_together else None,
+                    'trip_name': last_trip_together.name if last_trip_together else None,
+                    'trip_id': last_trip_together.id if last_trip_together else None
+                } if last_trip_together else None
+            })
+
         data = {
-            'top_partners': PartnerStatSerializer(top_partners, many=True).data,
+            'top_partners': top_partners,
         }
         
         # Only include records for hiking or when no filter is applied (surfing should not have records)
@@ -369,6 +431,189 @@ class DashboardDataView(APIView):
                     'best_wave_quality': StageSerializer(best_wave_quality, context={'request': request}).data if best_wave_quality else None,
                 }
             })
+        return Response(data)
+
+class DashboardOverviewView(APIView):
+    """
+    Aggregated dashboard endpoint that combines stats, records, and partners in one call.
+    Supports year filtering via ?year=2025 query parameter.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk=None, *args, **kwargs):
+        if pk:
+            try: user = User.objects.get(pk=pk)
+            except User.DoesNotExist: return Response(status=status.HTTP_404_NOT_FOUND)
+        else: user = request.user
+
+        # Get year filter from query parameters
+        year = request.GET.get('year')
+
+        # Base querysets
+        user_stages = Stage.objects.filter(trip__participants=user).distinct()
+        user_trips = Trip.objects.filter(participants=user).distinct()
+
+        # Apply year filtering if provided
+        if year:
+            try:
+                year_int = int(year)
+                user_stages = user_stages.filter(date__year=year_int)
+                # Include trips if start OR end date is in the year (handles year-spanning trips)
+                user_trips = user_trips.filter(
+                    Q(start_date__year=year_int) | Q(end_date__year=year_int)
+                )
+            except ValueError:
+                pass  # Invalid year, ignore filter
+
+        # Calculate available years from all stages (unfiltered)
+        all_user_stages = Stage.objects.filter(trip__participants=user).distinct()
+        available_years = list(
+            all_user_stages.dates('date', 'year', order='DESC').values_list('date__year', flat=True)
+        )
+
+        # Split by activity type
+        hiking_stages = user_stages.filter(activity_type='HIKING')
+        surfing_stages = user_stages.filter(activity_type='SURFING')
+        hiking_trips = user_trips.filter(activity_type='HIKING')
+        surfing_trips = user_trips.filter(activity_type='SURFING')
+
+        # Hiking stats
+        hiking_stats = hiking_stages.aggregate(
+            stage_count=Count('id'),
+            total_km=Sum(Coalesce('calculated_length_km', 'manual_length_km', Value(0.0))),
+            total_elevation=Sum(Coalesce('calculated_elevation_gain', 'manual_elevation_gain', Value(0))),
+            total_loss=Sum(Coalesce('calculated_elevation_loss', Value(0))),
+            total_duration=Sum(Coalesce('calculated_duration', 'manual_duration', Value(timedelta(0))))
+        )
+
+        # Surfing stats
+        surfing_stats = surfing_stages.aggregate(
+            stage_count=Count('id'),
+            total_time_in_water=Sum(Coalesce('time_in_water', Value(timedelta(0)))),
+            total_waves_caught=Sum(Coalesce('waves_caught', Value(0))),
+            avg_water_temp=Avg(Coalesce('water_temperature', Value(0.0))),
+            min_water_temp=Min(Coalesce('water_temperature', Value(999.0))),
+            max_water_temp=Max(Coalesce('water_temperature', Value(-999.0)))
+        )
+
+        # Most used surfboard
+        most_used_board = None
+        if surfing_stages.exists():
+            board_counts = surfing_stages.exclude(surfboard__isnull=True).values('surfboard__name').annotate(count=Count('surfboard')).order_by('-count').first()
+            if board_counts:
+                most_used_board = board_counts['surfboard__name']
+
+        # Hiking records
+        longest_hike_km = hiking_stages.order_by(Coalesce('calculated_length_km', 'manual_length_km', Value(0)).desc()).first()
+        highest_hike_gain = hiking_stages.order_by(Coalesce('calculated_elevation_gain', 'manual_elevation_gain', Value(0)).desc()).first()
+        longest_hike_duration = hiking_stages.order_by(Coalesce('calculated_duration', 'manual_duration', Value(timedelta(0))).desc()).first()
+
+        # Surfing records
+        longest_surf_session = surfing_stages.order_by(Coalesce('time_in_water', Value(timedelta(0))).desc()).first()
+        most_waves_caught = surfing_stages.order_by(Coalesce('waves_caught', Value(0)).desc()).first()
+        best_wave_quality = surfing_stages.order_by(Coalesce('wave_quality', Value(0)).desc()).first()
+
+        # Recent activity
+        last_hike = hiking_stages.order_by('-date').first()
+        last_surf = surfing_stages.order_by('-date').first()
+
+        # Top partners with last together info
+        top_partners_data = User.objects.filter(
+            participated_trips__in=user_trips
+        ).exclude(pk=user.pk).annotate(
+            total_trips=Count('participated_trips', filter=Q(participated_trips__in=user_trips), distinct=True),
+            hiking_count=Count('participated_trips', filter=Q(participated_trips__in=user_trips, participated_trips__activity_type='HIKING'), distinct=True),
+            surfing_count=Count('participated_trips', filter=Q(participated_trips__in=user_trips, participated_trips__activity_type='SURFING'), distinct=True)
+        ).order_by('-total_trips')[:3]
+
+        # Build partner data with last_together info
+        top_partners = []
+        for partner in top_partners_data:
+            # Find most recent trip together
+            last_trip_together = user_trips.filter(participants=partner).order_by('-start_date').first()
+            top_partners.append({
+                'id': partner.id,
+                'username': partner.username,
+                'hiking_count': partner.hiking_count,
+                'surfing_count': partner.surfing_count,
+                'last_together': {
+                    'date': last_trip_together.start_date.isoformat() if last_trip_together else None,
+                    'trip_name': last_trip_together.name if last_trip_together else None,
+                    'trip_id': last_trip_together.id if last_trip_together else None
+                } if last_trip_together else None
+            })
+
+        # Helper function to serialize stage record
+        def serialize_record(stage):
+            if not stage:
+                return None
+            return {
+                'id': stage.id,
+                'name': stage.name,
+                'trip_id': stage.trip.id,
+                'date': stage.date.isoformat(),
+                'calculated_length_km': stage.calculated_length_km,
+                'manual_length_km': stage.manual_length_km,
+                'calculated_elevation_gain': stage.calculated_elevation_gain,
+                'manual_elevation_gain': stage.manual_elevation_gain,
+                'calculated_elevation_loss': stage.calculated_elevation_loss,
+                'calculated_duration': str(stage.calculated_duration) if stage.calculated_duration else None,
+                'manual_duration': str(stage.manual_duration) if stage.manual_duration else None,
+                'time_in_water': str(stage.time_in_water) if stage.time_in_water else None,
+                'waves_caught': stage.waves_caught,
+                'wave_quality': stage.wave_quality
+            }
+
+        # Build response
+        data = {
+            'user': {
+                'id': user.id,
+                'username': user.username
+            },
+            'selected_year': int(year) if year else None,
+            'available_years': available_years,
+            'totals': {
+                'trip_count': user_trips.count(),
+                'hiking': {
+                    'trip_count': hiking_trips.count(),
+                    'stage_count': hiking_stats['stage_count'] or 0,
+                    'count': hiking_stats['stage_count'] or 0,  # Keep for backward compatibility
+                    'total_km': round(hiking_stats.get('total_km') or 0, 2),
+                    'total_elevation': hiking_stats.get('total_elevation') or 0,
+                    'total_loss': hiking_stats.get('total_loss') or 0,
+                    'total_duration': (hiking_stats.get('total_duration') or timedelta(0)).total_seconds()
+                },
+                'surfing': {
+                    'trip_count': surfing_trips.count(),
+                    'stage_count': surfing_stats['stage_count'] or 0,
+                    'count': surfing_stats['stage_count'] or 0,  # Keep for backward compatibility
+                    'total_time_in_water': (surfing_stats.get('total_time_in_water') or timedelta(0)).total_seconds(),
+                    'total_waves_caught': surfing_stats.get('total_waves_caught') or 0,
+                    'most_used_surfboard': most_used_board,
+                    'avg_water_temperature': round(surfing_stats.get('avg_water_temp') or 0, 1) if surfing_stats.get('avg_water_temp') else None,
+                    'min_water_temperature': surfing_stats.get('min_water_temp') if surfing_stats.get('min_water_temp', 999) != 999 else None,
+                    'max_water_temperature': surfing_stats.get('max_water_temp') if surfing_stats.get('max_water_temp', -999) != -999 else None
+                }
+            },
+            'records': {
+                'hiking': {
+                    'longest_km': serialize_record(longest_hike_km),
+                    'highest_gain': serialize_record(highest_hike_gain),
+                    'longest_duration': serialize_record(longest_hike_duration)
+                },
+                'surfing': {
+                    'longest_session': serialize_record(longest_surf_session),
+                    'most_waves': serialize_record(most_waves_caught),
+                    'best_quality': serialize_record(best_wave_quality)
+                }
+            },
+            'recent_activity': {
+                'last_hike': serialize_record(last_hike),
+                'last_surf': serialize_record(last_surf)
+            },
+            'top_partners': top_partners
+        }
+
         return Response(data)
 
 class CountriesAPIView(APIView):

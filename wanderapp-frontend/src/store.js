@@ -73,3 +73,59 @@ export function getCurrentTabRoute() {
       return '/hiking';
   }
 }
+
+// Dashboard state management
+export const dashboardCache = ref({});
+export const selectedYear = ref(null); // null = all-time
+export const availableYears = ref([]);
+
+// Fetch dashboard overview with caching
+export async function fetchDashboardOverview(userId = null, year = null) {
+  const cacheKey = `${userId || 'me'}_${year || 'all'}`;
+
+  // Return cached data if available
+  if (dashboardCache.value[cacheKey]) {
+    return dashboardCache.value[cacheKey];
+  }
+
+  // Build API URL
+  const params = year ? `?year=${year}` : '';
+  const url = userId
+    ? `/dashboard/overview/${userId}/${params}`
+    : `/dashboard/overview/${params}`;
+
+  try {
+    const response = await api.get(url);
+    // Cache the response
+    dashboardCache.value[cacheKey] = response.data;
+    // Update available years
+    if (response.data.available_years) {
+      availableYears.value = response.data.available_years;
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dashboard overview:', error);
+    throw error;
+  }
+}
+
+// Clear dashboard cache (useful when data changes)
+export function clearDashboardCache() {
+  dashboardCache.value = {};
+}
+
+// Set selected year and persist
+export function setSelectedYear(year) {
+  selectedYear.value = year;
+  if (year) {
+    localStorage.setItem('selectedYear', year);
+  } else {
+    localStorage.removeItem('selectedYear');
+  }
+}
+
+// Load selected year from localStorage on init
+const storedYear = localStorage.getItem('selectedYear');
+if (storedYear) {
+  selectedYear.value = parseInt(storedYear);
+}

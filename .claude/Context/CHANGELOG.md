@@ -8,8 +8,65 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+**Dashboard Year Filtering & Performance Improvements**
+- Added year filter dropdown to dashboard allowing users to view statistics for specific years or all-time
+- Created new aggregated `/api/dashboard/overview/` endpoint that combines stats, records, and partners in a single API call (reduces 4 calls → 1)
+- Dashboard now caches responses in reactive store for improved performance
+- Year filter persists selection in localStorage for convenience
+- Year filter supports viewing other users' dashboards with year-specific stats
+- **Performance Impact:** 75% reduction in API calls for dashboard overview (4 → 1)
+- **Technical Details:**
+  - Backend: New `DashboardOverviewView` combining stats, records, recent activity, and top partners
+  - Backend: Added `year` query parameter support to `/api/stats/` and `/api/dashboard-data/`
+  - Backend: Year filtering uses `date__year` for stages and `start_date__year | end_date__year` for trips (inclusive)
+  - Backend: Returns `available_years` array for populating year dropdown
+  - Frontend: Added dashboard state management to `store.js` with caching
+  - Frontend: Year filter UI with design token compliance
+  - Frontend: Mobile-responsive year filter (full-width dropdown on mobile)
+  - Frontend: ALL tab now uses optimized overview endpoint with graceful fallback
+  - API endpoints: `/api/dashboard/overview/` and `/api/dashboard/overview/{user_id}/` with `?year=YYYY` support
+
+**Dashboard UX Improvements**
+- Redesigned ALL tab with cleaner "Quick Overview" layout showing total trips and key metrics
+- Added "Highlights" section showing recent activity (last hike, last surf, top partner) with direct links
+- Enhanced partner cards now display "last together" information with trip name and date
+- Partner cards show combined hiking + surfing trip counts for better overview
+- Compacted partner cards with name and trip count on one line for better readability
+- Added friendly empty states for activities with helpful messaging and action buttons
+- Deep dive buttons on ALL tab encourage exploration to dedicated activity tabs
+- All improvements follow design system tokens and are fully responsive
+
+**Dashboard Polish & Refinement (Phase 4)**
+- Added automatic cache invalidation when trips/stages are created/edited to ensure dashboard always shows fresh data
+- Enhanced loading states with animated spinner for better user feedback during year filter changes
+- Improved error handling with dismissible banner UI featuring icon, message, and smooth slide-down animation
+- Optimized mobile responsiveness for error banner, loading states, and year filter
+- Added smooth fade-in transitions for all dashboard content when switching years or tabs
+- **Technical Details:**
+  - Cache clearing integrated into TripCreate, TripEdit, StageCreate, SurfStageCreate, StageEdit, SurfStageEdit components
+  - Loading spinner with CSS animations and semantic loading messages
+  - Error banner with dismiss button and slide-down animation
+  - Mobile-optimized padding and font sizes for new components
+  - Fade-in animations on sections, stat cards, and content grids
+
+**Components Modified:**
+- `wanderapp_backend/api/views.py` - Added DashboardOverviewView, updated UserStatsView and DashboardDataView with year filtering and trip_count fields
+- `wanderapp_backend/api/urls.py` - Added dashboard/overview routes
+- `wanderapp-frontend/src/store.js` - Added dashboard caching, selectedYear state, fetchDashboardOverview function, clearDashboardCache export
+- `wanderapp-frontend/src/components/UserDashboard.vue` - Completely redesigned ALL tab, enhanced partner cards, added empty states, integrated year filter UI, loading spinners, error banner, smooth transitions
+- `wanderapp-frontend/src/components/TripCreate.vue` - Added cache invalidation on trip creation
+- `wanderapp-frontend/src/components/TripEdit.vue` - Added cache invalidation on trip update
+- `wanderapp-frontend/src/components/StageCreate.vue` - Added cache invalidation on stage creation
+- `wanderapp-frontend/src/components/SurfStageCreate.vue` - Added cache invalidation on surf stage creation
+- `wanderapp-frontend/src/components/StageEdit.vue` - Added cache invalidation on stage update
+- `wanderapp-frontend/src/components/SurfStageEdit.vue` - Added cache invalidation on surf stage update
+
 ### Fixed
 
+- **Dashboard trip counts:** Fixed incorrect trip counts where stage counts were displayed as trip counts. Dashboard now properly distinguishes between trip counts (distinct trips) and stage counts (individual hikes/sessions within trips). Added `trip_count` and `stage_count` fields to hiking and surfing stats.
+- **Empty state navigation:** Fixed surfing empty state "Add Session" button that was incorrectly redirecting to hiking trip form. Now properly redirects to `/trip/new?activity_type=SURFING`.
 - Normalized duration formatting in trip and dashboard views so multi-day surf sessions (e.g., `1 00:00:00`) now display the correct hour totals instead of truncating at 24h.
 
 ## [Previous Updates] - 2025-10-02

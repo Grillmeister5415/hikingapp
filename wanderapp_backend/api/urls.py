@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import TripViewSet, StageViewSet, UserStatsView, CommentViewSet, HutViewSet, UserViewSet, DashboardDataView, PhotoViewSet, SurfboardViewSet, SurfSpotViewSet, CountriesAPIView, search_suggestions, calculate_gpx_metrics
+from .views import TripViewSet, StageViewSet, UserStatsView, CommentViewSet, HutViewSet, UserViewSet, DashboardDataView, DashboardOverviewView, PhotoViewSet, SurfboardViewSet, SurfSpotViewSet, CountriesAPIView, search_suggestions, calculate_gpx_metrics
 
 router = DefaultRouter()
 router.register(r'trips', TripViewSet, basename='trip')
@@ -16,9 +16,11 @@ urlpatterns = [
     path('', include(router.urls)),
     path('stats/', UserStatsView.as_view(), name='my-stats'),
     path('stats/<int:pk>/', UserStatsView.as_view(), name='user-stats'),
-    # NEU: Zwei Routen für die Dashboard-Daten
+    # Dashboard endpoints
     path('dashboard-data/', DashboardDataView.as_view(), name='my-dashboard-data'),
     path('dashboard-data/<int:pk>/', DashboardDataView.as_view(), name='user-dashboard-data'),
+    path('dashboard/overview/', DashboardOverviewView.as_view(), name='my-dashboard-overview'),
+    path('dashboard/overview/<int:pk>/', DashboardOverviewView.as_view(), name='user-dashboard-overview'),
     # Countries API for surf trips
     path('countries/', CountriesAPIView.as_view(), name='countries'),
     # Search suggestions for autocomplete

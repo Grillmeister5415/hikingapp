@@ -132,6 +132,7 @@ import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../api';
 import ParticipantSelector from './ParticipantSelector.vue';
+import { clearDashboardCache } from '../store';
 import BaseButton from './base/BaseButton.vue';
 import BaseInput from './base/BaseInput.vue';
 
@@ -237,6 +238,7 @@ const handleSubmit = async () => {
     }
 
     await api.patch(`/trips/${tripId}/`, payload);
+    clearDashboardCache(); // Clear cache so dashboard reflects changes
     router.push(`/trip/${tripId}`);
   } catch (err) {
     error.value = 'Fehler beim Speichern der Änderungen: ' + (JSON.stringify(err.response?.data) || err.message);

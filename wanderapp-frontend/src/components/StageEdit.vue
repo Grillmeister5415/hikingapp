@@ -247,6 +247,7 @@ import { ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import gpxParser from 'gpxparser';
 import api from '../api';
+import { clearDashboardCache } from '../store';
 import BaseButton from './base/BaseButton.vue';
 import BaseInput from './base/BaseInput.vue';
 
@@ -413,6 +414,7 @@ const handleSubmit = async () => {
     }
 
     await api.patch(`/stages/${stageId.value}/`, payload);
+    clearDashboardCache(); // Clear cache so dashboard reflects changes
     router.push(`/trip/${stage.value.trip}`);
 
   } catch (err) {

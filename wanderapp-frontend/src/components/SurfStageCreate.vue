@@ -235,6 +235,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
+import { clearDashboardCache } from '../store';
 import BaseButton from './base/BaseButton.vue';
 import BaseInput from './base/BaseInput.vue';
 import SurfboardSelector from './SurfboardSelector.vue';
@@ -377,6 +378,7 @@ const handleSubmit = async () => {
     };
 
     await api.post('/stages/', payload);
+    clearDashboardCache(); // Clear cache so dashboard reflects new surf session
     router.push(`/trip/${tripId.value}`);
   } catch (err) {
     if (err.response && err.response.data) {
