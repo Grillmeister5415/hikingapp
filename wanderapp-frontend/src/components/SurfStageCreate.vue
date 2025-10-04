@@ -329,11 +329,26 @@
             <option value="ABSOLUTE_SEWER">Absolute Kloake</option>
           </BaseInput>
 
+          <BaseInput
+            id="external_link"
+            type="url"
+            v-model="external_link"
+            label="Links (optional)"
+            placeholder="https://... oder andere relevante Links"
+          />
         </div>
 
         <!-- Poolwave-Specific Fields -->
         <div v-if="environment === 'POOLWAVE'" class="environment-group poolwave-group">
           <h4>🏊 Poolwave Infos</h4>
+
+          <BaseInput
+            id="external_link"
+            type="url"
+            v-model="external_link"
+            label="Links (optional)"
+            placeholder="https://... oder andere relevante Links"
+          />
         </div>
       </div>
 

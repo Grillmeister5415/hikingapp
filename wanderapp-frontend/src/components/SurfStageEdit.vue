@@ -193,11 +193,11 @@
             </div>
 
             <!-- Wave and Wind Conditions -->
-          <div class="conditions-section">
-            <h5>Wave & Wind Conditions</h5>
-            <div class="form-row">
-              <BaseInput
-                id="swell_direction"
+            <div class="conditions-section">
+              <h5>Wave & Wind Conditions</h5>
+              <div class="form-row">
+                <BaseInput
+                  id="swell_direction"
                   type="select"
                   v-model="stage.swell_direction"
                   label="Swell Direction"
@@ -246,17 +246,17 @@
                   label="Windgeschwindigkeit (km/h)"
                   placeholder="z.B. 15.5"
                 />
+              </div>
             </div>
-          </div>
 
-          <BaseInput
-            id="external_link"
-            type="url"
-            v-model="stage.external_link"
-            label="Links (optional)"
-            placeholder="https://surf-forecast.com/... oder andere relevante Links"
-          />
-        </div>
+            <BaseInput
+              id="external_link"
+              type="url"
+              v-model="stage.external_link"
+              label="Links (optional)"
+              placeholder="https://surf-forecast.com/... oder andere relevante Links"
+            />
+          </div>
 
           <!-- Riverwave-Specific Fields -->
           <div v-if="stage.environment === 'RIVERWAVE'" class="environment-group riverwave-group">
@@ -326,12 +326,27 @@
               placeholder="z.B. 18.5"
             />
 
-        </div>
+            <BaseInput
+              id="external_link"
+              type="url"
+              v-model="stage.external_link"
+              label="Links (optional)"
+              placeholder="https://... oder andere relevante Links"
+            />
+          </div>
 
-        <!-- Poolwave-Specific Fields -->
-        <div v-if="stage.environment === 'POOLWAVE'" class="environment-group poolwave-group">
-          <h4>🏊 Poolwave Infos</h4>
-        </div>
+          <!-- Poolwave-Specific Fields -->
+          <div v-if="stage.environment === 'POOLWAVE'" class="environment-group poolwave-group">
+            <h4>🏊 Poolwave Infos</h4>
+
+            <BaseInput
+              id="external_link"
+              type="url"
+              v-model="stage.external_link"
+              label="Links (optional)"
+              placeholder="https://... oder andere relevante Links"
+            />
+          </div>
         </div>
 
         <BaseButton
