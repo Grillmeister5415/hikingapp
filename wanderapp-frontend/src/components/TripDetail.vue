@@ -275,7 +275,7 @@
             <BaseCard variant="flat" padding="small">
               <div class="condition-card">
                 <h5 class="condition-title">
-                  <span>🏞️ Riverwave Infos</span>
+                  <span>Riverwave Infos</span>
                   <span v-if="stage.wave_power" class="wave-power-badge" :class="`power-${stage.wave_power?.toLowerCase()}`">
                     {{ getWavePowerLabel(stage.wave_power) }}
                   </span>
@@ -310,7 +310,7 @@
           <div v-if="stage.environment === 'POOLWAVE'" class="conditions-grid">
             <BaseCard variant="flat" padding="small">
               <div class="condition-card">
-                <h5 class="condition-title">🏊 Poolwave Session</h5>
+                <h5 class="condition-title">Poolwave Session</h5>
                 <div class="condition-items">
                   <div v-if="stage.surf_spot" class="condition-row">
                     <span class="condition-label">Pool</span>
@@ -696,8 +696,8 @@ const formatDuration = formatDurationHoursMinutes;
 
 // Environment helper functions
 const getEnvironmentLabel = (env) => {
-  const labels = { 'OCEAN': '🌊 Ocean', 'RIVERWAVE': '🏞️ Riverwave', 'POOLWAVE': '🏊 Poolwave' };
-  return labels[env] || '🌊 Ocean';
+  const labels = { 'OCEAN': 'Ocean', 'RIVERWAVE': 'Riverwave', 'POOLWAVE': 'Poolwave' };
+  return labels[env] || 'Ocean';
 };
 
 const getWavePowerLabel = (power) => {
