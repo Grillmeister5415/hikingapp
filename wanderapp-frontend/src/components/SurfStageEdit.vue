@@ -49,21 +49,21 @@
                 :class="['segment', { active: stage.environment === 'OCEAN' }]"
                 @click="stage.environment = 'OCEAN'"
               >
-                🌊 Ocean
+                Ocean
               </button>
               <button
                 type="button"
                 :class="['segment', { active: stage.environment === 'RIVERWAVE' }]"
                 @click="stage.environment = 'RIVERWAVE'"
               >
-                🏞️ Riverwave
+                Riverwave
               </button>
               <button
                 type="button"
                 :class="['segment', { active: stage.environment === 'POOLWAVE' }]"
                 @click="stage.environment = 'POOLWAVE'"
               >
-                🏊 Poolwave
+                Poolwave
               </button>
             </div>
           </div>
